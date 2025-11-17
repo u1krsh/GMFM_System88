@@ -1,0 +1,334 @@
+#:import dp kivy.metrics.dp
+
+<DashboardScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "GMFM Companion"
+            elevation: 10
+            md_bg_color: [0.2, 0.4, 0.8, 1]
+            right_action_items:
+                [["account-plus", lambda x: app.open_patient_form()],
+                ["clipboard-plus", lambda x: app.open_session_form(root.primary_patient_id) if root.primary_patient_id else app.open_patient_form()]]
+        MDBoxLayout:
+            orientation: "vertical"
+            padding: dp(16)
+            spacing: dp(12)
+            MDLabel:
+                text: root.greeting
+                theme_text_color: "Primary"
+                font_style: "H5"
+                bold: True
+                size_hint_y: None
+                height: dp(36)
+            MDLabel:
+                id: stats_label
+                text: "0 patients • 0 tested • 0 total sessions"
+                theme_text_color: "Secondary"
+                font_size: "13sp"
+                size_hint_y: None
+                height: dp(20)
+            MDCard:
+                orientation: "vertical"
+                padding: dp(16)
+                spacing: dp(12)
+                elevation: 4
+                MDLabel:
+                    text: "Your Patients"
+                    bold: True
+                    font_style: "H6"
+                    size_hint_y: None
+                    height: dp(28)
+                ScrollView:
+                    effect_cls: "ScrollEffect"
+                    smooth_scroll_end: 10
+                    MDBoxLayout:
+                        id: patient_list_container
+                        orientation: "vertical"
+                        spacing: dp(12)
+                        padding: 0, dp(4)
+                        size_hint_y: None
+                        height: self.minimum_height
+
+<PatientFormScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Patient Information"
+            elevation: 4
+            left_action_items: [["arrow-left", lambda x: app.back_to_dashboard()]]
+        ScrollView:
+            do_scroll_x: False
+            effect_cls: "ScrollEffect"
+            smooth_scroll_end: 10
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: dp(24)
+                spacing: dp(20)
+                size_hint_y: None
+                height: self.minimum_height
+                MDLabel:
+                    text: "All fields are required"
+                    theme_text_color: "Secondary"
+                    font_size: "14sp"
+                    size_hint_y: None
+                    height: dp(24)
+                MDTextField:
+                    id: given_name_field
+                    hint_text: "Given Name"
+                    required: True
+                    helper_text: "Patient's first name"
+                    helper_text_mode: "on_focus"
+                    size_hint_y: None
+                    height: dp(56)
+                MDTextField:
+                    id: family_name_field
+                    hint_text: "Family Name"
+                    required: True
+                    helper_text: "Patient's last name"
+                    helper_text_mode: "on_focus"
+                    size_hint_y: None
+                    height: dp(56)
+                MDTextField:
+                    id: identifier_field
+                    hint_text: "Patient Identifier (optional)"
+                    helper_text: "Unique ID (e.g., P001, ABC123)"
+                    helper_text_mode: "on_focus"
+                    size_hint_y: None
+                    height: dp(56)
+                MDBoxLayout:
+                    orientation: "horizontal"
+                    spacing: dp(12)
+                    size_hint_y: None
+                    height: dp(56)
+                    padding: (0, dp(16), 0, 0)
+                    MDRaisedButton:
+                        text: "Cancel"
+                        on_release: app.back_to_dashboard()
+                        md_bg_color: [0.5, 0.5, 0.5, 1]
+                        size_hint_x: 0.3
+                    MDBoxLayout:
+                    MDRaisedButton:
+                        text: "Save Patient"
+                        on_release: root.save_patient()
+                        md_bg_color: [0.2, 0.6, 0.9, 1]
+                        size_hint_x: 0.5
+
+<ScoringScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "GMFM Score Sheet"
+            elevation: 4
+            md_bg_color: [0.2, 0.4, 0.8, 1]
+            left_action_items: [["arrow-left", lambda x: app.back_to_dashboard()]]
+            right_action_items: [["content-save", lambda x: root.save_session(False)], ["file-pdf-box", lambda x: root.save_session(True)]]
+        ScrollView:
+            id: score_scroll
+            do_scroll_x: False
+            effect_cls: "ScrollEffect"
+            smooth_scroll_end: 10
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: dp(16), dp(16), dp(16), dp(24)
+                spacing: dp(16)
+                size_hint_y: None
+                height: self.minimum_height
+                
+                # Patient info card
+                MDCard:
+                    orientation: "vertical"
+                    adaptive_height: True
+                    padding: dp(16)
+                    spacing: dp(8)
+                    elevation: 3
+                    MDLabel:
+                        id: patient_name_label
+                        text: "No patient selected"
+                        bold: True
+                        font_style: "H6"
+                    MDLabel:
+                        id: patient_meta_label
+                        text: "Select a patient from the dashboard"
+                        theme_text_color: "Secondary"
+                    
+                    # Scale selector
+                    MDBoxLayout:
+                        size_hint_y: None
+                        height: dp(48)
+                        spacing: dp(12)
+                        padding: (0, dp(8), 0, 0)
+                        MDLabel:
+                            text: "Scale:"
+                            size_hint_x: None
+                            width: dp(60)
+                            bold: True
+                            valign: "middle"
+                        MDChip:
+                            id: scale66_chip
+                            text: "GMFM-66"
+                            check: True
+                            on_release: root.set_scale("66")
+                            md_bg_color: [0.3, 0.7, 0.3, 1]
+                            text_color: [1, 1, 1, 1]
+                        MDChip:
+                            id: scale88_chip
+                            text: "GMFM-88"
+                            check: True
+                            on_release: root.set_scale("88")
+                            md_bg_color: [0.3, 0.5, 0.9, 1]
+                            text_color: [1, 1, 1, 1]
+                
+                # Domain navigation
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(12)
+                    spacing: dp(8)
+                    elevation: 2
+                    size_hint_y: None
+                    height: dp(110)
+                    MDLabel:
+                        text: "Quick Navigation"
+                        bold: True
+                        size_hint_y: None
+                        height: dp(24)
+                    MDLabel:
+                        id: domain_count_label
+                        text: "GMFM-88: 88 items"
+                        theme_text_color: "Secondary"
+                        size_hint_y: None
+                        height: dp(20)
+                    ScrollView:
+                        size_hint_y: None
+                        height: dp(48)
+                        do_scroll_y: False
+                        effect_cls: "ScrollEffect"
+                        smooth_scroll_end: 10
+                        MDBoxLayout:
+                            id: domain_filter_bar
+                            orientation: "horizontal"
+                            spacing: dp(8)
+                            padding: 0, dp(4)
+                            size_hint_x: None
+                            width: self.minimum_width
+                            size_hint_y: None
+                            height: self.minimum_height
+                
+                # Domains container
+                MDBoxLayout:
+                    id: domains_container
+                    orientation: "vertical"
+                    spacing: dp(16)
+                    size_hint_y: None
+                    height: self.minimum_height
+                
+                # Summary card (sticky-like at bottom)
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(16)
+                    spacing: dp(8)
+                    elevation: 6
+                    md_bg_color: [0.95, 0.97, 1, 1]
+                    size_hint_y: None
+                    height: self.minimum_height
+                    MDLabel:
+                        text: "Progress & Summary"
+                        bold: True
+                        font_style: "H6"
+                        size_hint_y: None
+                        height: dp(32)
+                    MDLabel:
+                        id: summary_label
+                        text: "No scores captured yet."
+                        theme_text_color: "Secondary"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        text_size: self.width, None
+                        valign: "top"
+                
+                # Action buttons
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(56)
+                    spacing: dp(12)
+                    padding: (0, dp(8), 0, 0)
+                    MDRaisedButton:
+                        text: "Save Session"
+                        on_release: root.save_session(False)
+                        md_bg_color: [0.2, 0.6, 0.9, 1]
+                    MDRaisedButton:
+                        text: "Save & Export PDF"
+                        on_release: root.save_session(True)
+                        md_bg_color: [0.3, 0.7, 0.3, 1]
+                    MDFlatButton:
+                        text: "Clear All"
+                        on_release: root.clear_scores()
+                        theme_text_color: "Error"
+
+<SessionDetailScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        MDTopAppBar:
+            title: "Session History"
+            elevation: 4
+            md_bg_color: [0.2, 0.4, 0.8, 1]
+            left_action_items: [["arrow-left", lambda x: app.back_to_dashboard()]]
+        ScrollView:
+            do_scroll_x: False
+            effect_cls: "ScrollEffect"
+            smooth_scroll_end: 10
+            MDBoxLayout:
+                orientation: "vertical"
+                spacing: dp(16)
+                padding: dp(16)
+                size_hint_y: None
+                height: self.minimum_height
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(16)
+                    spacing: dp(12)
+                    elevation: 3
+                    size_hint_y: None
+                    height: self.minimum_height
+                    MDLabel:
+                        text: "Session Records"
+                        bold: True
+                        font_style: "H6"
+                        size_hint_y: None
+                        height: dp(28)
+                    MDLabel:
+                        id: session_list
+                        text: "No sessions recorded yet"
+                        theme_text_color: "Secondary"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                MDCard:
+                    orientation: "vertical"
+                    padding: dp(16)
+                    spacing: dp(12)
+                    elevation: 3
+                    size_hint_y: None
+                    height: dp(240)
+                    MDLabel:
+                        text: "Progress Trend"
+                        bold: True
+                        font_style: "H6"
+                        size_hint_y: None
+                        height: dp(28)
+                    Image:
+                        id: trend_image
+                        allow_stretch: True
+                        keep_ratio: True
+                MDBoxLayout:
+                    size_hint_y: None
+                    height: dp(56)
+                    spacing: dp(16)
+                    MDRaisedButton:
+                        text: "Export Latest PDF"
+                        on_release: root.export_latest_report()
+                        md_bg_color: [0.3, 0.7, 0.3, 1]
+                    MDLabel:
+                        id: status_label
+                        text: ""
+                        theme_text_color: "Secondary"
+                        valign: "middle"

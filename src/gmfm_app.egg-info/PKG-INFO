@@ -1,0 +1,71 @@
+Metadata-Version: 2.4
+Name: gmfm-app
+Version: 0.1.0
+Summary: Offline-first GMFM scoring companion with Kivy UI
+Author: GMFM Team
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: kivy>=2.3.0
+Requires-Dist: kivymd>=1.1.1
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: cryptography>=42.0.0
+Requires-Dist: keyring>=24.0.0
+Requires-Dist: python-dotenv>=1.0.1
+Requires-Dist: matplotlib>=3.8.0
+Requires-Dist: reportlab>=4.0.8
+Provides-Extra: dev
+Requires-Dist: pytest>=8.2.0; extra == "dev"
+Requires-Dist: pytest-cov>=5.0.0; extra == "dev"
+Requires-Dist: black>=24.4.0; extra == "dev"
+Requires-Dist: ruff>=0.5.0; extra == "dev"
+
+# GMFM Companion
+
+Offline-first GMFM-66/88 scoring companion for clinicians. Ships with a KivyMD UI, encrypted SQLite storage, PDF summaries, and charting utilities.
+
+## Features (MVP)
+- Accurate, testable GMFM-66 and GMFM-88 scoring pipeline.
+- Offline-first patient/session management backed by SQLite.
+- Field-level encryption for sensitive patient identifiers.
+- Clean, touch-friendly UI built with KivyMD.
+- PDF exports with per-domain score breakdowns and sparkline trend charts.
+
+## Security
+- Encryption keys resolved from `GMFM_APP_SECRET`, OS keyring, or generated `.env.local` fallback.
+- Patient names and identifiers are encrypted at rest inside SQLite.
+- Local filesystem folders (`reports/`, `exports/`) are created on launch; protect them with OS-level encryption for production.
+
+## Getting Started
+1. **Create and activate** a Python 3.11+ environment.
+2. **Install dependencies**:
+   ```bash
+   pip install -e .[dev]
+   ```
+3. **Run the app**:
+   ```bash
+   python -m gmfm_app.app
+   ```
+4. **Run the tests**:
+   ```bash
+   python -m unittest discover -s tests -p "test_*.py"
+   ```
+
+## Using the App
+1. Launch the Kivy UI and create a patient from the toolbar.
+2. Record a GMFM-66 or GMFM-88 session by entering scores as `item:score` pairs (e.g., `1:3,2:2`).
+3. Open a patient's sessions to view trend charts (total + per-domain) and export a one-page PDF.
+4. Generated artifacts:
+   - Charts saved to `exports/patient_<id>_trend.png`.
+   - PDF reports saved to `reports/patient_<id>_session_<id>.pdf`.
+
+> The UI uses Kivy; make sure you have the required system dependencies per the [Kivy installation guide](https://kivy.org/doc/stable/installation/installation.html).
+
+## Repository Layout
+- `src/gmfm_app/` – application source
+- `tests/` – pytest-based automated tests
+- `docs/` – architecture and planning documents
+
+## Roadmap
+- Remote sync adapter
+- Role-based access control
+- Automated deployment bundles (Windows/macOS)

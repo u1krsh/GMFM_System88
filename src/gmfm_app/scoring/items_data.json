@@ -1,0 +1,472 @@
+{
+  "A": {
+    "dimension": "A",
+    "title": "LYING & ROLLING",
+    "items": [
+      {
+        "number": 1,
+        "description": "SUP, HEAD IN MIDLINE: TURNS HEAD WITH EXTREMITIES SYMMETRICAL",
+        "gmfm66": false
+      },
+      {
+        "number": 2,
+        "description": "SUP: BRINGS HANDS TO MIDLINE, FINGERS ONE WITH THE OTHER",
+        "gmfm66": true
+      },
+      {
+        "number": 3,
+        "description": "SUP: LIFTS HEAD 45 deg",
+        "gmfm66": false
+      },
+      {
+        "number": 4,
+        "description": "SUP: FLEXES R HIP & KNEE THROUGH FULL RANGE",
+        "gmfm66": false
+      },
+      {
+        "number": 5,
+        "description": "SUP: FLEXES L HIP & KNEE THROUGH FULL RANGE",
+        "gmfm66": false
+      },
+      {
+        "number": 6,
+        "description": "SUP: REACHES OUT WITH R ARM, HAND CROSSES MIDLINE TOWARD TOY",
+        "gmfm66": true
+      },
+      {
+        "number": 7,
+        "description": "SUP: REACHES OUT WITH L ARM, HAND CROSSES MIDLINE TOWARD TOY",
+        "gmfm66": true
+      },
+      {
+        "number": 8,
+        "description": "SUP: ROLLS TO PR OVER R SIDE",
+        "gmfm66": false
+      },
+      {
+        "number": 9,
+        "description": "SUP: ROLLS TO PR OVER L SIDE",
+        "gmfm66": false
+      },
+      {
+        "number": 10,
+        "description": "PR: LIFTS HEAD UPRIGHT",
+        "gmfm66": true
+      },
+      {
+        "number": 11,
+        "description": "PR ON FOREARMS: LIFTS HEAD UPRIGHT, ELBOWS EXT., CHEST RAISED",
+        "gmfm66": false
+      },
+      {
+        "number": 12,
+        "description": "PR ON FOREARMS: WEIGHT ON R FOREARM, FULLY EXTENDS OPPOSITE ARM FORWARD",
+        "gmfm66": false
+      },
+      {
+        "number": 13,
+        "description": "PR ON FOREARMS: WEIGHT ON L FOREARM, FULLY EXTENDS OPPOSITE ARM FORWARD",
+        "gmfm66": false
+      },
+      {
+        "number": 14,
+        "description": "PR: ROLLS TO SUP OVER R SIDE",
+        "gmfm66": false
+      },
+      {
+        "number": 15,
+        "description": "PR: ROLLS TO SUP OVER L SIDE",
+        "gmfm66": false
+      },
+      {
+        "number": 16,
+        "description": "PR: PIVOTS TO R 90 deg USING EXTREMITIES",
+        "gmfm66": false
+      },
+      {
+        "number": 17,
+        "description": "PR: PIVOTS TO L 90 deg USING EXTREMITIES",
+        "gmfm66": false
+      }
+    ]
+  },
+  "B": {
+    "dimension": "B",
+    "title": "SITTING",
+    "items": [
+      {
+        "number": 18,
+        "description": "SUP, HANDS GRASPED BY EXAMINER: PULLS SELF TO SITTING WITH HEAD CONTROL",
+        "gmfm66": true
+      },
+      {
+        "number": 19,
+        "description": "SUP: ROLLS TO R SIDE, ATTAINS SITTING",
+        "gmfm66": false
+      },
+      {
+        "number": 20,
+        "description": "SUP: ROLLS TO L SIDE, ATTAINS SITTING",
+        "gmfm66": false
+      },
+      {
+        "number": 21,
+        "description": "SIT ON MAT, SUPPORTED AT THORAX BY THERAPIST: LIFTS HEAD UPRIGHT, MAINTAINS 3 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 22,
+        "description": "SIT ON MAT, SUPPORTED AT THORAX BY THERAPIST: LIFTS HEAD MIDLINE, MAINTAINS 10 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 23,
+        "description": "SIT ON MAT, ARM(S) PROPPING: MAINTAINS, 5 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 24,
+        "description": "SIT ON MAT: MAINTAIN, ARMS FREE, 3 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 25,
+        "description": "SIT ON MAT WITH SMALL TOY IN FRONT: LEANS FORWARD, TOUCHES TOY, RE-ERECTS WITHOUT ARM PROPPING",
+        "gmfm66": true
+      },
+      {
+        "number": 26,
+        "description": "SIT ON MAT: TOUCHES TOY PLACED 45 deg BEHIND CHILD'S R SIDE, RETURNS TO START",
+        "gmfm66": true
+      },
+      {
+        "number": 27,
+        "description": "SIT ON MAT: TOUCHES TOY PLACED 45 deg BEHIND CHILD'S L SIDE, RETURNS TO START",
+        "gmfm66": true
+      },
+      {
+        "number": 28,
+        "description": "R SIDE SIT: MAINTAINS, ARMS FREE, 5 SECONDS",
+        "gmfm66": false
+      },
+      {
+        "number": 29,
+        "description": "L SIDE SIT: MAINTAINS, ARMS FREE, 5 SECONDS",
+        "gmfm66": false
+      },
+      {
+        "number": 30,
+        "description": "SIT ON MAT: LOWERS TO PR WITH CONTROL",
+        "gmfm66": true
+      },
+      {
+        "number": 31,
+        "description": "SIT ON MAT WITH FEET IN FRONT: ATTAINS 4 POINT OVER R SIDE",
+        "gmfm66": true
+      },
+      {
+        "number": 32,
+        "description": "SIT ON MAT WITH FEET IN FRONT: ATTAINS 4 POINT OVER L SIDE",
+        "gmfm66": true
+      },
+      {
+        "number": 33,
+        "description": "SIT ON MAT: PIVOTS 90 deg, WITHOUT ARMS ASSISTING",
+        "gmfm66": false
+      },
+      {
+        "number": 34,
+        "description": "SIT ON BENCH: MAINTAINS, ARMS AND FEET FREE, 10 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 35,
+        "description": "STD: ATTAINS SIT ON SMALL BENCH",
+        "gmfm66": true
+      },
+      {
+        "number": 36,
+        "description": "ON THE FLOOR: ATTAINS SIT ON SMALL BENCH",
+        "gmfm66": true
+      },
+      {
+        "number": 37,
+        "description": "ON THE FLOOR: ATTAINS SIT ON LARGE BENCH",
+        "gmfm66": true
+      }
+    ]
+  },
+  "C": {
+    "dimension": "C",
+    "title": "CRAWLING & KNEELING",
+    "items": [
+      {
+        "number": 38,
+        "description": "PR: CREEPS FORWARD 1.8m (6')",
+        "gmfm66": false
+      },
+      {
+        "number": 39,
+        "description": "4 POINT: MAINTAINS, WEIGHT ON HANDS AND KNEES, 10 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 40,
+        "description": "4 POINT: ATTAINS SIT ARMS FREE",
+        "gmfm66": true
+      },
+      {
+        "number": 41,
+        "description": "PR: ATTAINS 4 POINT, WEIGHT ON HANDS AND KNEES",
+        "gmfm66": true
+      },
+      {
+        "number": 42,
+        "description": "4 POINT: REACHES FORWARD WITH R ARM, HAND ABOVE SHOULDER LEVEL",
+        "gmfm66": true
+      },
+      {
+        "number": 43,
+        "description": "4 POINT: REACHES FORWARD WITH L ARM, HAND ABOVE SHOULDER LEVEL",
+        "gmfm66": true
+      },
+      {
+        "number": 44,
+        "description": "4 POINT: CRAWLS OR HITCHES FORWARD 1.8m(6')",
+        "gmfm66": true
+      },
+      {
+        "number": 45,
+        "description": "4 POINT: CRAWLS RECIPROCALLY FORWARD 1.8m ( 6')",
+        "gmfm66": true
+      },
+      {
+        "number": 46,
+        "description": "4 POINT: CRAWLS UP 4 STEPS ON HANDS AND KNEES/FEET",
+        "gmfm66": true
+      },
+      {
+        "number": 47,
+        "description": "4 POINT: CRAWLS BACKWARDS DOWN 4 STEPS ON HANDS AND KNEES/FEET",
+        "gmfm66": false
+      },
+      {
+        "number": 48,
+        "description": "SIT ON MAT: ATTAINS HIGH KN USING ARMS, MAINTAINS, ARMS FREE, 10 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 49,
+        "description": "HIGH KN: ATTAINS HALF KN ON R KNEE USING ARMS, MAINTAINS, ARMS FREE, 10 SECONDS",
+        "gmfm66": false
+      },
+      {
+        "number": 50,
+        "description": "HIGH KN: ATTAINS HALF KN ON L KNEE USING ARMS, MAINTAINS, ARMS FREE, 10 SECONDS",
+        "gmfm66": false
+      },
+      {
+        "number": 51,
+        "description": "HIGH KN: KN WALKS FORWARD 10 STEPS, ARMS FREE",
+        "gmfm66": true
+      }
+    ]
+  },
+  "D": {
+    "dimension": "D",
+    "title": "STANDING",
+    "items": [
+      {
+        "number": 52,
+        "description": "ON THE FLOOR: PULLS TO STD AT LARGE BENCH",
+        "gmfm66": true
+      },
+      {
+        "number": 53,
+        "description": "STD: MAINTAINS, ARMS FREE, 3 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 54,
+        "description": "STD: HOLDING ON TO LARGE BENCH WITH ONE HAND, LIFTS R FOOT, 3 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 55,
+        "description": "STD: HOLDING ON TO LARGE BENCH WITH ONE HAND, LIFTS L FOOT, 3 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 56,
+        "description": "STD: MAINTAINS, ARMS FREE, 20 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 57,
+        "description": "STD: LIFTS L FOOT, ARMS FREE, 10 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 58,
+        "description": "STD: LIFTS R FOOT, ARMS FREE, 10 SECONDS",
+        "gmfm66": true
+      },
+      {
+        "number": 59,
+        "description": "SIT ON SMALL BENCH: ATTAINS STD WITHOUT USING ARMS",
+        "gmfm66": true
+      },
+      {
+        "number": 60,
+        "description": "HIGH KN: ATTAINS STD THROUGH HALF KN ON R KNEE, WITHOUT USING ARMS",
+        "gmfm66": true
+      },
+      {
+        "number": 61,
+        "description": "HIGH KN: ATTAINS STD THROUGH HALF KN ON L KNEE, WITHOUT USING ARMS",
+        "gmfm66": true
+      },
+      {
+        "number": 62,
+        "description": "STD: LOWERS TO SIT ON FLOOR WITH CONTROL, ARMS FREE",
+        "gmfm66": true
+      },
+      {
+        "number": 63,
+        "description": "STD: ATTAINS SQUAT, ARMS FREE",
+        "gmfm66": true
+      },
+      {
+        "number": 64,
+        "description": "STD: PICKS UP OBJECT FROM FLOOR, ARMS FREE, RETURNS TO STAND",
+        "gmfm66": true
+      }
+    ]
+  },
+  "E": {
+    "dimension": "E",
+    "title": "WALKING, RUNNING & JUMPING",
+    "items": [
+      {
+        "number": 65,
+        "description": "STD, 2 HANDS ON LARGE BENCH: CRUISES 5 STEPS TO R",
+        "gmfm66": true
+      },
+      {
+        "number": 66,
+        "description": "STD, 2 HANDS ON LARGE BENCH: CRUISES 5 STEPS TO L",
+        "gmfm66": true
+      },
+      {
+        "number": 67,
+        "description": "STD, 2 HANDS HELD: WALKS FORWARD 10 STEPS",
+        "gmfm66": true
+      },
+      {
+        "number": 68,
+        "description": "STD, 1 HAND HELD: WALKS FORWARD 10 STEPS",
+        "gmfm66": true
+      },
+      {
+        "number": 69,
+        "description": "STD: WALKS FORWARD 10 STEPS",
+        "gmfm66": true
+      },
+      {
+        "number": 70,
+        "description": "STD: WALKS FORWARD 10 STEPS, STOPS, TURNS 180 deg, RETURNS",
+        "gmfm66": true
+      },
+      {
+        "number": 71,
+        "description": "STD: WALKS BACKWARD 10 STEPS",
+        "gmfm66": true
+      },
+      {
+        "number": 72,
+        "description": "STD: WALKS FORWARD 10 STEPS, CARRYING A LARGE OBJECT WITH 2 HANDS",
+        "gmfm66": true
+      },
+      {
+        "number": 73,
+        "description": "STD: WALKS FORWARD 10 CONSECUTIVE STEPS BETWEEN PARALLEL LINES 20cm (8\") APART",
+        "gmfm66": true
+      },
+      {
+        "number": 74,
+        "description": "STD: WALKS FORWARD 10 CONSECUTIVE STEPS ON A STRAIGHT LINE 2cm (3/4\") WIDE",
+        "gmfm66": true
+      },
+      {
+        "number": 75,
+        "description": "STD: STEPS OVER STICK AT KNEE LEVEL, R FOOT LEADING",
+        "gmfm66": true
+      },
+      {
+        "number": 76,
+        "description": "STD: STEPS OVER STICK AT KNEE LEVEL, L FOOT LEADING",
+        "gmfm66": true
+      },
+      {
+        "number": 77,
+        "description": "STD: RUNS 4.5m (15'), STOPS & RETURNS",
+        "gmfm66": true
+      },
+      {
+        "number": 78,
+        "description": "STD: KICKS BALL WITH R FOOT",
+        "gmfm66": true
+      },
+      {
+        "number": 79,
+        "description": "STD: KICKS BALL WITH L FOOT",
+        "gmfm66": true
+      },
+      {
+        "number": 80,
+        "description": "STD: JUMPS 30cm (12\") HIGH, BOTH FEET SIMULTANEOUSLY",
+        "gmfm66": true
+      },
+      {
+        "number": 81,
+        "description": "STD: JUMPS FORWARD 30 cm (12\"), BOTH FEET SIMULTANEOUSLY",
+        "gmfm66": true
+      },
+      {
+        "number": 82,
+        "description": "STD ON R FOOT: HOPS ON R FOOT 10 TIMES WITHIN A 60cm (24\") CIRCLE",
+        "gmfm66": true
+      },
+      {
+        "number": 83,
+        "description": "STD ON L FOOT: HOPS ON L FOOT 10 TIMES WITHIN A 60cm (24\") CIRCLE",
+        "gmfm66": true
+      },
+      {
+        "number": 84,
+        "description": "STD, HOLDING 1 RAIL: WALKS UP 4 STEPS, HOLDING 1 RAIL, ALTERNATING FEET",
+        "gmfm66": true
+      },
+      {
+        "number": 85,
+        "description": "STD, HOLDING 1 RAIL: WALKS DOWN 4 STEPS, HOLDING 1 RAIL, ALTERNATING FEET",
+        "gmfm66": true
+      },
+      {
+        "number": 86,
+        "description": "STD: WALKS UP 4 STEPS, ALTERNATING FEET",
+        "gmfm66": true
+      },
+      {
+        "number": 87,
+        "description": "STD: WALKS DOWN 4 STEPS, ALTERNATING FEET",
+        "gmfm66": true
+      },
+      {
+        "number": 88,
+        "description": "STD ON 15cm (6\") STEP: JUMPS OFF, BOTH FEET SIMULTANEOUSLY",
+        "gmfm66": true
+      }
+    ]
+  }
+}
