@@ -2,6 +2,12 @@
 Provides functions to calculate domain percentages and total percentage for both GMFM-66 and GMFM-88.
 Input: raw_scores -> dict[int, int] mapping item_id to score (0..3)
 Output: dict with per-domain percent (0-100) and total_percent
+
+NOTE: This implementation uses a simplified percentage-based calculation for GMFM-66.
+True GMFM-66 scoring requires the Gross Motor Ability Estimator (GMAE) algorithm,
+which uses Rasch analysis to convert ordinal scores to an interval scale.
+The results provided here for GMFM-66 are approximations based on raw score percentages
+and should be interpreted with caution. For clinical validity, use GMAE software.
 """
 from __future__ import annotations
 

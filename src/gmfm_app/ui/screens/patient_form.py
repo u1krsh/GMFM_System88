@@ -37,14 +37,15 @@ class PatientFormScreen(MDScreen):
         identifier = self.ids.get("identifier_field").text.strip() or None
         
         # Validation with feedback
-        if not given or not family:
+        errors = []
+        if not given:
+            errors.append("Given name required")
+        if not family:
+            errors.append("Family name required")
+        
+        if errors:
             from kivymd.uix.snackbar import Snackbar
-            errors = []
-            if not given:
-                errors.append("Given name required")
-            if not family:
-                errors.append("Family name required")
-            Snackbar(text=" | ".join(errors), duration=3).open()
+            Snackbar(text=" • ".join(errors), duration=3, bg_color=[0.8, 0.2, 0.2, 1]).open()
             return
         
         patient_id: Optional[int] = None
@@ -58,20 +59,20 @@ class PatientFormScreen(MDScreen):
                 self.repo.update_patient(updated)
                 patient_id = updated.id
                 from kivymd.uix.snackbar import Snackbar
-                Snackbar(text="✓ Patient updated successfully", duration=2).open()
+                Snackbar(text="✓ Patient updated successfully", duration=2, bg_color=[0.2, 0.6, 0.3, 1]).open()
             else:
                 patient = Patient(given_name=given, family_name=family, identifier=identifier)
                 saved = self.repo.create_patient(patient)
                 patient_id = saved.id
                 from kivymd.uix.snackbar import Snackbar
-                Snackbar(text="✓ Patient saved successfully", duration=2).open()
+                Snackbar(text="✓ Patient saved successfully", duration=2, bg_color=[0.2, 0.6, 0.3, 1]).open()
         except Exception as e:
             from kivymd.uix.snackbar import Snackbar
             error_msg = str(e)
             if "UNIQUE constraint" in error_msg or "unique" in error_msg.lower():
-                Snackbar(text=f"Patient identifier '{identifier}' already exists", duration=4).open()
+                Snackbar(text=f"Patient identifier '{identifier}' already exists", duration=4, bg_color=[0.8, 0.2, 0.2, 1]).open()
             else:
-                Snackbar(text=f"Error saving patient: {error_msg}", duration=4).open()
+                Snackbar(text=f"Error saving patient: {error_msg}", duration=4, bg_color=[0.8, 0.2, 0.2, 1]).open()
             return
 
         # Refresh dashboard

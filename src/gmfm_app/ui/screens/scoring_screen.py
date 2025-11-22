@@ -22,6 +22,7 @@ from gmfm_app.scoring.items_catalog import GMFMDomain, GMFMItem, get_domains
 from gmfm_app.services.chart_service import render_score_dashboard
 from gmfm_app.services.report_service import generate_report
 from gmfm_app.services.scoring_service import ScoringService, ScoreRequest
+from gmfm_app.ui.widgets import ScoreSelector
 
 
 class ScoringScreen(MDScreen):
@@ -34,7 +35,7 @@ class ScoringScreen(MDScreen):
         self.scale: str = "88"
         self.domains: List[GMFMDomain] = []
         self.raw_scores: Dict[int, int] = {}
-        self._toggle_refs: Dict[int, Dict[str, ToggleButton]] = {}
+        self._selectors: Dict[int, ScoreSelector] = {}
         self.domain_cards: Dict[str, MDCard] = {}
         self.total_items: int = 0
         super().__init__(**kwargs)
@@ -105,9 +106,8 @@ class ScoringScreen(MDScreen):
     # score controls ----------------------------------------------------
     def clear_scores(self) -> None:
         self.raw_scores.clear()
-        for buttons in self._toggle_refs.values():
-            for btn in buttons.values():
-                btn.state = "normal"
+        for selector in self._selectors.values():
+            selector.update_state(None)
         self.update_summary()
 
     def _build_domain_cards(self) -> None:
@@ -119,7 +119,7 @@ class ScoringScreen(MDScreen):
         if summary_label:
             summary_label.text = f"GMFM-{self.scale}: {self.total_items} items total"
         container.clear_widgets()
-        self._toggle_refs.clear()
+        self._selectors.clear()
         self.domain_cards.clear()
         for domain in self.domains:
             card = self._create_domain_card(domain)
@@ -159,9 +159,8 @@ class ScoringScreen(MDScreen):
 
         # Column headers
         column_row = MDBoxLayout(orientation="horizontal", size_hint_y=None, height=dp(28), padding=(0, dp(8), 0, 0))
-        column_row.add_widget(MDLabel(text="Item", bold=True, size_hint_x=0.6))
-        column_row.add_widget(MDLabel(text="Score (0-3)", halign="center", bold=True, size_hint_x=None, width=dp(160)))
-        column_row.add_widget(MDLabel(text="NT", halign="center", bold=True, size_hint_x=None, width=dp(50)))
+        column_row.add_widget(MDLabel(text="Item", bold=True, size_hint_x=0.5))
+        column_row.add_widget(MDLabel(text="Score (0-3)", halign="center", bold=True, size_hint_x=0.5))
         content.add_widget(column_row)
 
         items_box = MDBoxLayout(orientation="vertical", spacing=dp(4), size_hint_y=None)
@@ -177,7 +176,7 @@ class ScoringScreen(MDScreen):
         row = MDBoxLayout(orientation="horizontal", spacing=dp(12), size_hint_y=None, height=dp(52), padding=(dp(8), dp(4)))
         
         # Item label with number and description
-        label_box = MDBoxLayout(orientation="vertical", spacing=dp(2), size_hint_x=0.6)
+        label_box = MDBoxLayout(orientation="vertical", spacing=dp(2), size_hint_x=0.5)
         number_label = MDLabel(
             text=f"#{item.number}",
             font_size="11sp",
@@ -196,82 +195,23 @@ class ScoringScreen(MDScreen):
         label_box.add_widget(desc_label)
         row.add_widget(label_box)
         
-        # Single increment button
-        button_box = MDBoxLayout(orientation="horizontal", spacing=dp(6), size_hint_x=None, width=dp(100))
-        score_btn = Button(
-            text="—",
-            size_hint=(None, None),
-            width=dp(90),
-            height=dp(40),
-            background_normal="",
-            background_color=[0.4, 0.4, 0.4, 1],
-            color=[1, 1, 1, 1],
-            font_size="16sp",
-            bold=True,
-        )
-        score_btn.bind(on_release=partial(self._increment_score, item.number, score_btn))
-        button_box.add_widget(score_btn)
-        self._toggle_refs[item.number] = {"button": score_btn}
-        row.add_widget(button_box)
+        # Score Selector
+        selector = ScoreSelector(item_number=item.number, callback=self._on_score_change)
+        selector.size_hint_x = 0.5
+        row.add_widget(selector)
+        self._selectors[item.number] = selector
+        
         return row
 
-    def _increment_score(self, item_number: int, button: Button, *args) -> None:
-        """Cycle through scores: — → 0 → 1 → 2 → 3 → NT → —"""
-        current_score = self.raw_scores.get(item_number)
-        current_text = button.text
-        
-        # Check if currently showing NT
-        if current_text == "NT":
-            # Reset to unscored
-            self.raw_scores.pop(item_number, None)
-            button.text = "—"
-            button.background_color = [0.4, 0.4, 0.4, 1]
-        elif current_score is None:
-            # Not scored yet, start at 0
-            self.raw_scores[item_number] = 0
-            button.text = "0"
-            button.background_color = [0.2, 0.6, 0.3, 1]
-        elif current_score == 0:
-            self.raw_scores[item_number] = 1
-            button.text = "1"
-            button.background_color = [0.3, 0.7, 0.4, 1]
-        elif current_score == 1:
-            self.raw_scores[item_number] = 2
-            button.text = "2"
-            button.background_color = [0.4, 0.7, 0.5, 1]
-        elif current_score == 2:
-            self.raw_scores[item_number] = 3
-            button.text = "3"
-            button.background_color = [0.2, 0.4, 0.8, 1]
-        elif current_score == 3:
-            # Go to NT - remove from scores
-            self.raw_scores.pop(item_number, None)
-            button.text = "NT"
-            button.background_color = [0.7, 0.5, 0.2, 1]
-        
-        self.update_summary()
-
-    def _style_toggle(self, toggle: ToggleButton, state: str) -> None:
-        theme = MDApp.get_running_app().theme_cls
-        if state == "down":
-            toggle.background_color = (*theme.primary_color[:3], 1)
-            toggle.color = [1, 1, 1, 1]
-        else:
-            toggle.background_color = [0.9, 0.9, 0.9, 1]
-            toggle.color = [0.1, 0.1, 0.1, 1]
-
-    def _handle_score_state(self, item_number: int, value: str, toggle: ToggleButton, state: str) -> None:
-        if state != "down":
-            # If button is being deselected, don't remove the score
-            # The new button in the group will set the new score
-            return
-        if value == "NT":
+    def _on_score_change(self, item_number: int, score: Optional[int]) -> None:
+        if score is None:
             self.raw_scores.pop(item_number, None)
         else:
-            self.raw_scores[item_number] = int(value)
+            self.raw_scores[item_number] = score
         self.update_summary()
 
     # summary + persistence ---------------------------------------------
+
     def update_summary(self, cached_result: Optional[Dict[str, Any]] = None) -> None:
         summary_label: MDLabel = self.ids.get("summary_label")  # type: ignore[assignment]
         if not summary_label:
