@@ -5,8 +5,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "GMFM Companion"
-            elevation: 10
-            md_bg_color: [0.2, 0.4, 0.8, 1]
+            elevation: 2
             right_action_items:
                 [["account-plus", lambda x: app.open_patient_form()],
                 ["clipboard-plus", lambda x: app.open_session_form(root.primary_patient_id) if root.primary_patient_id else app.open_patient_form()]]
@@ -32,7 +31,8 @@
                 orientation: "vertical"
                 padding: dp(16)
                 spacing: dp(12)
-                elevation: 4
+                elevation: 1
+                radius: [20, 20, 20, 20]
                 MDLabel:
                     text: "Your Patients"
                     bold: True
@@ -55,7 +55,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "Patient Information"
-            elevation: 4
+            elevation: 2
             left_action_items: [["arrow-left", lambda x: app.back_to_dashboard()]]
         ScrollView:
             do_scroll_x: False
@@ -111,7 +111,7 @@
                     MDRaisedButton:
                         text: "Save Patient"
                         on_release: root.save_patient()
-                        md_bg_color: [0.2, 0.6, 0.9, 1]
+                        md_bg_color: app.theme_cls.primary_color
                         size_hint_x: 0.5
 
 <ScoringScreen>:
@@ -119,8 +119,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "GMFM Score Sheet"
-            elevation: 4
-            md_bg_color: [0.2, 0.4, 0.8, 1]
+            elevation: 2
             left_action_items: [["arrow-left", lambda x: app.back_to_dashboard()]]
             right_action_items: [["content-save", lambda x: root.save_session(False)], ["file-pdf-box", lambda x: root.save_session(True)]]
         ScrollView:
@@ -141,7 +140,8 @@
                     adaptive_height: True
                     padding: dp(16)
                     spacing: dp(8)
-                    elevation: 3
+                    elevation: 1
+                    radius: [20, 20, 20, 20]
                     MDLabel:
                         id: patient_name_label
                         text: "No patient selected"
@@ -184,7 +184,8 @@
                     orientation: "vertical"
                     padding: dp(12)
                     spacing: dp(8)
-                    elevation: 2
+                    elevation: 1
+                    radius: [20, 20, 20, 20]
                     size_hint_y: None
                     height: dp(110)
                     MDLabel:
@@ -227,8 +228,9 @@
                     orientation: "vertical"
                     padding: dp(16)
                     spacing: dp(8)
-                    elevation: 6
-                    md_bg_color: [0.95, 0.97, 1, 1]
+                    elevation: 2
+                    radius: [20, 20, 20, 20]
+                    md_bg_color: app.theme_cls.bg_light
                     size_hint_y: None
                     height: self.minimum_height
                     MDLabel:
@@ -255,11 +257,11 @@
                     MDRaisedButton:
                         text: "Save Session"
                         on_release: root.save_session(False)
-                        md_bg_color: [0.2, 0.6, 0.9, 1]
+                        md_bg_color: app.theme_cls.primary_color
                     MDRaisedButton:
                         text: "Save & Export PDF"
                         on_release: root.save_session(True)
-                        md_bg_color: [0.3, 0.7, 0.3, 1]
+                        md_bg_color: app.theme_cls.accent_color
                     MDFlatButton:
                         text: "Clear All"
                         on_release: root.clear_scores()
@@ -270,8 +272,7 @@
         orientation: "vertical"
         MDTopAppBar:
             title: "Session History"
-            elevation: 4
-            md_bg_color: [0.2, 0.4, 0.8, 1]
+            elevation: 2
             left_action_items: [["arrow-left", lambda x: app.back_to_dashboard()]]
         ScrollView:
             do_scroll_x: False
@@ -287,7 +288,8 @@
                     orientation: "vertical"
                     padding: dp(16)
                     spacing: dp(12)
-                    elevation: 3
+                    elevation: 1
+                    radius: [20, 20, 20, 20]
                     size_hint_y: None
                     height: self.minimum_height
                     MDLabel:
@@ -306,7 +308,8 @@
                     orientation: "vertical"
                     padding: dp(16)
                     spacing: dp(12)
-                    elevation: 3
+                    elevation: 1
+                    radius: [20, 20, 20, 20]
                     size_hint_y: None
                     height: dp(240)
                     MDLabel:
@@ -326,7 +329,7 @@
                     MDRaisedButton:
                         text: "Export Latest PDF"
                         on_release: root.export_latest_report()
-                        md_bg_color: [0.3, 0.7, 0.3, 1]
+                        md_bg_color: app.theme_cls.primary_color
                     MDLabel:
                         id: status_label
                         text: ""

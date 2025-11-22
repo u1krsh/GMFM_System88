@@ -45,8 +45,9 @@ class GMFMApp(MDApp):
 
     def build(self):
         self.title = "GMFM Companion"
-        self.theme_cls.primary_palette = "Blue"
-        self.theme_cls.accent_palette = "Teal"
+        self.theme_cls.material_style = "M3"
+        self.theme_cls.primary_palette = "DeepPurple"
+        self.theme_cls.accent_palette = "Pink"
         Builder.load_file(str(Path(__file__).with_name("main.kv")))
         self.manager = MDScreenManager()
         self.manager.add_widget(DashboardScreen(name="dashboard", db_context=self.db_context))

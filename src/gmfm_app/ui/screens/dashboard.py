@@ -99,7 +99,7 @@ class DashboardScreen(MDScreen):
             container.add_widget(self._build_patient_card(row))
 
     def _build_patient_card(self, overview: PatientOverview) -> MDCard:
-        card = MDCard(orientation="vertical", padding=dp(16), spacing=dp(12), size_hint_y=None, height=dp(200), elevation=2)
+        card = MDCard(orientation="vertical", padding=dp(16), spacing=dp(12), size_hint_y=None, height=dp(200), elevation=1, radius=[20, 20, 20, 20])
 
         # Header with name and edit button
         header = MDBoxLayout(orientation="horizontal", spacing=dp(12), size_hint_y=None, height=dp(40))
