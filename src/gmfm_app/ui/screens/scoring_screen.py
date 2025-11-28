@@ -69,21 +69,6 @@ class ScoringScreen(MDScreen):
         self._load_domains()
         self.update_summary()
 
-    def _sync_scale_chips(self) -> None:
-        chip66 = self.ids.get("scale66_chip")
-        chip88 = self.ids.get("scale88_chip")
-        if chip66:
-            chip66.active = self.scale == "66"
-        if chip88:
-            chip88.active = self.scale == "88"
-
-    # score controls ----------------------------------------------------
-    def clear_scores(self) -> None:
-        self.raw_scores.clear()
-        for selector in self._selectors.values():
-            selector.update_state(None)
-        self.update_summary()
-
     def _load_domains(self) -> None:
         self.domains = get_domains(self.scale)
         self._build_domain_cards()
@@ -99,7 +84,7 @@ class ScoringScreen(MDScreen):
                 text=f"{domain.dimension}. {domain.title.title()}",
                 on_release=lambda _, dim=domain.dimension: self._scroll_to_domain(dim),
                 icon_left="chevron-right",
-                md_bg_color=MDApp.get_running_app().theme_cls.primary_color if i % 2 == 0 else MDApp.get_running_app().theme_cls.primary_dark,
+                md_bg_color=[0.3, 0.5, 0.9, 1] if i % 2 == 0 else [0.4, 0.6, 1, 1],
                 text_color=[1, 1, 1, 1],
             )
             bar.add_widget(chip)
@@ -109,6 +94,21 @@ class ScoringScreen(MDScreen):
         card = self.domain_cards.get(dimension)
         if scroll and card:
             scroll.scroll_to(card)
+
+    def _sync_scale_chips(self) -> None:
+        chip66 = self.ids.get("scale66_chip")
+        chip88 = self.ids.get("scale88_chip")
+        if chip66:
+            chip66.active = self.scale == "66"
+        if chip88:
+            chip88.active = self.scale == "88"
+
+    # score controls ----------------------------------------------------
+    def clear_scores(self) -> None:
+        self.raw_scores.clear()
+        for selector in self._selectors.values():
+            selector.update_state(None)
+        self.update_summary()
 
     def _build_domain_cards(self) -> None:
         container: MDBoxLayout = self.ids.get("domains_container")  # type: ignore[assignment]
@@ -127,7 +127,7 @@ class ScoringScreen(MDScreen):
             self.domain_cards[domain.dimension] = card
 
     def _create_domain_card(self, domain: GMFMDomain) -> MDCard:
-        card = MDCard(orientation="vertical", padding=dp(16), spacing=dp(12), size_hint_y=None, elevation=1, radius=[20, 20, 20, 20])
+        card = MDCard(orientation="vertical", padding=dp(16), spacing=dp(12), size_hint_y=None, elevation=3)
         card.bind(minimum_height=card.setter("height"))
         content = MDBoxLayout(orientation="vertical", spacing=dp(8), size_hint_y=None)
         content.bind(minimum_height=lambda _, value: setattr(card, "height", value + dp(32)))
@@ -174,6 +174,8 @@ class ScoringScreen(MDScreen):
 
     def _create_item_row(self, item: GMFMItem) -> MDBoxLayout:
         row = MDBoxLayout(orientation="horizontal", spacing=dp(12), size_hint_y=None, height=dp(52), padding=(dp(8), dp(4)))
+        
+        # Item label with number and description
         label_box = MDBoxLayout(orientation="vertical", spacing=dp(2), size_hint_x=0.5)
         number_label = MDLabel(
             text=f"#{item.number}",

@@ -93,79 +93,146 @@ class DashboardScreen(MDScreen):
             empty_card.add_widget(MDLabel(text="📋", font_style="H3", halign="center"))
             empty_card.add_widget(MDLabel(text="No patients yet", font_style="H6", halign="center", bold=True))
             empty_card.add_widget(MDLabel(text="Tap the + button above to add your first patient", halign="center", theme_text_color="Secondary"))
-            container.add_widget(empty_card)
             return
+        
+        total_patients = len(self.overview_rows)
+        tested_patients = sum(1 for ov in self.overview_rows if ov.latest_session)
+        total_sessions = sum(ov.session_count for ov in self.overview_rows)
+        
+        
+        stats_label = self.ids.get("stats_label")
+        if stats_label:
+            stats_label.text = f"{total_patients} patients • {tested_patients} tested • {total_sessions} total sessions"
+
         for row in self.overview_rows:
             container.add_widget(self._build_patient_card(row))
 
     def _build_patient_card(self, overview: PatientOverview) -> MDCard:
-        card = MDCard(orientation="vertical", padding=dp(16), spacing=dp(12), size_hint_y=None, height=dp(200), elevation=1, radius=[20, 20, 20, 20])
+        card = MDCard(
+            orientation="vertical",
+            padding=dp(16),
+            spacing=dp(12),
+            size_hint_y=None,
+            height=dp(180),
+            elevation=1,
+            radius=[24, 24, 24, 24],
+            ripple_behavior=True,
+            on_release=lambda *_: self._view_sessions(overview.patient.id),
+        )
 
-        # Header with name and edit button
-        header = MDBoxLayout(orientation="horizontal", spacing=dp(12), size_hint_y=None, height=dp(40))
-        name_box = MDBoxLayout(orientation="vertical", spacing=dp(4))
-        name = f"{overview.patient.given_name} {overview.patient.family_name}"
-        name_box.add_widget(MDLabel(text=name, bold=True, font_style="H6"))
+        # Top Row: Avatar + Name + Edit
+        top_row = MDBoxLayout(orientation="horizontal", spacing=dp(16), size_hint_y=None, height=dp(50))
+        
+        # Avatar (Circle with initials)
+        initials = f"{overview.patient.given_name[0]}{overview.patient.family_name[0]}".upper()
+        avatar = MDCard(
+            size_hint=(None, None), size=(dp(48), dp(48)),
+            radius=[24, 24, 24, 24],
+            md_bg_color=MDApp.get_running_app().theme_cls.primary_color,
+            elevation=0
+        )
+        avatar.add_widget(MDLabel(
+            text=initials, 
+            halign="center", 
+            theme_text_color="Custom", 
+            text_color=(1, 1, 1, 1),
+            bold=True,
+            font_style="H6"
+        ))
+        top_row.add_widget(avatar)
+
+        # Name and ID
+        name_box = MDBoxLayout(orientation="vertical", spacing=dp(2))
+        name_box.add_widget(MDLabel(
+            text=f"{overview.patient.given_name} {overview.patient.family_name}",
+            bold=True,
+            font_style="Subtitle1",
+            theme_text_color="Primary"
+        ))
         if overview.patient.identifier:
-            name_box.add_widget(MDLabel(text=f"ID: {overview.patient.identifier}", theme_text_color="Secondary", font_size="12sp"))
-        header.add_widget(name_box)
+            name_box.add_widget(MDLabel(
+                text=f"ID: {overview.patient.identifier}",
+                theme_text_color="Secondary",
+                font_style="Caption"
+            ))
+        top_row.add_widget(name_box)
+
+        # Edit Button
         edit_btn = MDIconButton(
-            icon="pencil",
+            icon="pencil-outline",
+            theme_text_color="Secondary",
             on_release=lambda *_: MDApp.get_running_app().open_patient_form(overview.patient),
         )
-        header.add_widget(edit_btn)
-        card.add_widget(header)
+        top_row.add_widget(edit_btn)
+        card.add_widget(top_row)
 
-        # Status chip with session count badge
-        status_row = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(40))
-        status_chip = MDChip(
-            text=overview.status_text,
-            icon_left=overview.status_icon,
-            md_bg_color=overview.status_color,
-            text_color=[1, 1, 1, 1],
+        # Status Row
+        status_row = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(32))
+        
+        # Status Badge
+        status_color = overview.status_color
+        status_text = "Tested" if overview.latest_session else "New"
+        status_badge = MDCard(
+            size_hint=(None, None), height=dp(28), width=dp(80),
+            radius=[14, 14, 14, 14],
+            md_bg_color=[c * 0.2 for c in status_color[:3]] + [1], # Light tint
+            elevation=0,
+            padding=(dp(8), dp(4))
         )
-        status_row.add_widget(status_chip)
-        
-        # Session count badge
-        if overview.session_count > 0:
-            count_chip = MDChip(
-                text=f"{overview.session_count} session{'s' if overview.session_count != 1 else ''}",
-                icon_left="history",
-                md_bg_color=[0.3, 0.5, 0.9, 0.8],
-                text_color=[1, 1, 1, 1],
-            )
-            status_row.add_widget(count_chip)
-        
+        status_badge.add_widget(MDLabel(
+            text=status_text,
+            halign="center",
+            theme_text_color="Custom",
+            text_color=status_color,
+            bold=True,
+            font_style="Caption"
+        ))
+        status_row.add_widget(status_badge)
+
+        # Score Badge (if exists)
         if overview.latest_session:
-            score_label = MDLabel(
-                text=f"Score: {overview.score_text}",
-                theme_text_color="Primary",
-                bold=True,
-                size_hint_x=None,
-                width=dp(200),
+            score_text = f"{overview.latest_session.total_score:.0f}%"
+            score_badge = MDCard(
+                size_hint=(None, None), height=dp(28), width=dp(60),
+                radius=[14, 14, 14, 14],
+                md_bg_color=MDApp.get_running_app().theme_cls.accent_color,
+                elevation=0,
+                padding=(dp(8), dp(4))
             )
-            status_row.add_widget(score_label)
+            score_badge.add_widget(MDLabel(
+                text=score_text,
+                halign="center",
+                theme_text_color="Custom",
+                text_color=(1, 1, 1, 1),
+                bold=True,
+                font_style="Caption"
+            ))
+            status_row.add_widget(score_badge)
+            
+            # Date
+            date_label = MDLabel(
+                text=overview.latest_session.created_at.strftime("%b %d"),
+                theme_text_color="Secondary",
+                font_style="Caption",
+                halign="right"
+            )
+            status_row.add_widget(date_label)
+
         card.add_widget(status_row)
 
-        # Action buttons
-        buttons = MDBoxLayout(orientation="horizontal", spacing=dp(12), size_hint_y=None, height=dp(52))
-        test_label = "Test Again" if overview.latest_session else "Start Test"
-        test_icon = "reload" if overview.latest_session else "play-circle"
-        buttons.add_widget(
-            MDRaisedButton(
-                text=test_label,
-                icon=test_icon,
-                on_release=lambda *_: self._open_scoring(overview.patient.id),
-            )
+        actions_box = MDBoxLayout(orientation="horizontal", spacing=dp(8), size_hint_y=None, height=dp(40))
+        actions_box.add_widget(MDLabel(text="")) # Spacer
+        
+        test_btn = MDRaisedButton(
+            text="Test",
+            icon="play",
+            elevation=0,
+            md_bg_color=MDApp.get_running_app().theme_cls.primary_color,
+            on_release=lambda *_: self._open_scoring(overview.patient.id)
         )
-        buttons.add_widget(
-            MDRaisedButton(
-                text="View History",
-                icon="chart-line",
-                on_release=lambda *_: self._view_sessions(overview.patient.id),
-            )
-        )
-        card.add_widget(buttons)
+        actions_box.add_widget(test_btn)
+        card.add_widget(actions_box)
+
         return card
 
     def _open_scoring(self, patient_id: Optional[int]) -> None:

@@ -46,15 +46,13 @@ class ScoreSelector(MDBoxLayout):
             self.callback(self.item_number, self.score)
 
     def _update_buttons(self, active_value):
-        from kivymd.app import MDApp
-        app = MDApp.get_running_app()
         for val, btn in self._buttons.items():
             if val == active_value:
-                btn.md_bg_color = app.theme_cls.primary_color
+                btn.md_bg_color = [0.2, 0.6, 0.9, 1]  # Active color
                 btn.text_color = [1, 1, 1, 1]
             else:
                 btn.md_bg_color = [0, 0, 0, 0]  # Transparent
-                btn.text_color = app.theme_cls.text_color
+                btn.text_color = [0.2, 0.2, 0.2, 1]
 
     def update_state(self, score):
         self.score = score
