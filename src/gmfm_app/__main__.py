@@ -1,5 +1,6 @@
 """Entry point for running the GMFM app as a module."""
-from gmfm_app.app import GMFMApp
+import flet as ft
+from gmfm_app.main import main
 
 if __name__ == "__main__":
-    GMFMApp().run()
+    ft.app(target=main)

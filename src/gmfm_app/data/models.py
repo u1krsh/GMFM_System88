@@ -21,4 +21,5 @@ class Session(BaseModel):
     scale: Literal["66", "88"]
     raw_scores: Dict[int, conint(ge=0, le=3)]
     total_score: Optional[float] = None
+    notes: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)

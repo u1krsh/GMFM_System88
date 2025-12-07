@@ -44,11 +44,25 @@ def init_db(path: Path) -> None:
                 scale TEXT NOT NULL,
                 raw_scores TEXT NOT NULL,
                 total_score REAL NOT NULL,
+                notes TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(patient_id) REFERENCES patients(id)
             );
             """
         )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+            """
+        )
+        # Add notes column if it doesn't exist (migration)
+        try:
+            cursor.execute("ALTER TABLE sessions ADD COLUMN notes TEXT")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
         conn.commit()
 
 

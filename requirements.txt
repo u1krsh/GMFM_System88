@@ -1,5 +1,4 @@
-kivy>=2.3.0
-kivymd>=1.1.1
+flet>=0.21.0
 pydantic>=2.7.0
 cryptography>=42.0.0
 keyring>=24.0.0

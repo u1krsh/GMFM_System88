@@ -94,12 +94,13 @@ class SessionRepository(BaseRepository):
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO sessions (patient_id, scale, raw_scores, total_score, created_at) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO sessions (patient_id, scale, raw_scores, total_score, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     session.patient_id,
                     session.scale,
                     json.dumps(session.raw_scores),
                     session.total_score if session.total_score is not None else 0.0,
+                    session.notes,
                     session.created_at.isoformat(),
                 ),
             )
