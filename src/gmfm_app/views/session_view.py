@@ -56,7 +56,7 @@ class SessionHistoryView(ft.View):
                     padding=ft.padding.symmetric(horizontal=14, vertical=8),
                     bgcolor=PRIMARY,
                     border_radius=10,
-                    on_click=lambda _: self.page.go(f"/scoring?patient_id={patient_id}"),
+                    on_click=lambda _: self._show_scale_dialog(),
                 ),
             ]),
             padding=15,
@@ -142,6 +142,68 @@ class SessionHistoryView(ft.View):
         dlg.open = True
         self.page.update()
 
+    def _show_scale_dialog(self):
+        """Show GMFM-66/88 scale selection dialog."""
+        c = self.c
+        
+        def select_scale(scale):
+            dlg.open = False
+            self.page.update()
+            self.page.go(f"/scoring?patient_id={self.patient_id}&scale={scale}")
+        
+        dlg = ft.AlertDialog(
+            title=ft.Text("Select Assessment Scale"),
+            content=ft.Column([
+                ft.Container(
+                    content=ft.Row([
+                        ft.Container(
+                            content=ft.Text("66", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                            width=50, height=50,
+                            bgcolor=PRIMARY,
+                            border_radius=12,
+                            alignment=ft.alignment.center,
+                        ),
+                        ft.Container(width=12),
+                        ft.Column([
+                            ft.Text("GMFM-66", size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                            ft.Text("66 items (subset)", size=12, color=c["TEXT2"]),
+                        ], expand=True),
+                    ]),
+                    padding=16,
+                    bgcolor=c["CARD"],
+                    border_radius=12,
+                    border=ft.border.all(1, c["BORDER"]),
+                    on_click=lambda _: select_scale("66"),
+                    ink=True,
+                ),
+                ft.Container(height=10),
+                ft.Container(
+                    content=ft.Row([
+                        ft.Container(
+                            content=ft.Text("88", size=24, weight=ft.FontWeight.BOLD, color="white"),
+                            width=50, height=50,
+                            bgcolor=SUCCESS,
+                            border_radius=12,
+                            alignment=ft.alignment.center,
+                        ),
+                        ft.Container(width=12),
+                        ft.Column([
+                            ft.Text("GMFM-88", size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                            ft.Text("88 items (complete)", size=12, color=c["TEXT2"]),
+                        ], expand=True),
+                    ]),
+                    padding=16,
+                    bgcolor=c["CARD"],
+                    border_radius=12,
+                    border=ft.border.all(1, c["BORDER"]),
+                    on_click=lambda _: select_scale("88"),
+                    ink=True,
+                ),
+            ], tight=True),
+        )
+        self.page.overlay.append(dlg)
+        dlg.open = True
+        self.page.update()
     def _build_progress_chart(self, sessions):
         c = self.c
         sorted_sessions = sorted(sessions, key=lambda s: s.created_at)

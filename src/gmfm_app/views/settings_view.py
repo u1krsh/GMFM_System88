@@ -52,7 +52,8 @@ class SettingsView(ft.View):
         data_card = self._settings_card(
             "Data Management",
             [
-                self._action_row("Export All Data", "Download all patient data", "download", self._export_data),
+                self._action_row("Export as JSON", "Download all data as JSON", "code", self._export_data),
+                self._action_row("Export as CSV", "Download for Excel/Sheets", "table_chart", self._export_csv),
                 self._action_row("Clear All Data", "Delete all patients and sessions", "delete_forever", self._clear_data, danger=True),
             ]
         )
@@ -181,6 +182,50 @@ class SettingsView(ft.View):
         self.page.snack_bar = ft.SnackBar(ft.Text(f"Data exported to {export_path}"), bgcolor=SUCCESS)
         self.page.snack_bar.open = True
         self.page.update()
+
+    def _export_csv(self, e):
+        """Export data as CSV for Excel/Sheets."""
+        import csv
+        from pathlib import Path
+        from gmfm_app.data.repositories import PatientRepository, SessionRepository
+        
+        patient_repo = PatientRepository(self.db_context)
+        session_repo = SessionRepository(self.db_context)
+        
+        patients = patient_repo.list_patients(limit=1000)
+        
+        import os
+        export_dir = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
+        export_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Export patients CSV
+        patients_path = export_dir / "patients.csv"
+        with open(patients_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["ID", "First Name", "Last Name", "DOB", "Identifier"])
+            for p in patients:
+                writer.writerow([p.id, p.given_name, p.family_name, str(p.dob) if p.dob else "", p.identifier or ""])
+        
+        # Export sessions CSV
+        sessions_path = export_dir / "sessions.csv"
+        with open(sessions_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["ID", "Patient ID", "Patient Name", "Scale", "Total Score", "Notes", "Date"])
+            for p in patients:
+                sessions = session_repo.list_sessions_for_patient(p.id)
+                for s in sessions:
+                    writer.writerow([
+                        s.id, s.patient_id, f"{p.given_name} {p.family_name}",
+                        s.scale, f"{s.total_score:.1f}%", s.notes or "",
+                        s.created_at.strftime("%Y-%m-%d %H:%M")
+                    ])
+        
+        self.page.snack_bar = ft.SnackBar(ft.Text(f"CSV files saved to Documents/GMFM_Reports!"), bgcolor=SUCCESS)
+        self.page.snack_bar.open = True
+        self.page.update()
+        
+        import subprocess
+        subprocess.Popen(f'explorer "{export_dir}"')
 
     def _clear_data(self, e):
         def confirm_clear(e):

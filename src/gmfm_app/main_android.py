@@ -1,5 +1,6 @@
 """
-GMFM Pro - Desktop Edition
+GMFM Pro - Mobile Optimized (Android/iOS)
+Run this file when building for mobile: flet build apk --target src/gmfm_app/main_android.py
 """
 import sys
 from pathlib import Path
@@ -31,16 +32,19 @@ class GMFMApp:
         self.page = page
         self.page.title = "GMFM Pro"
         
-        # Desktop settings
+        # Mobile optimizations - no window settings
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.bgcolor = Theme.LIGHT_BG
-        self.page.window_width = 1100
-        self.page.window_height = 800
         self.page.padding = 0
         
-        self.db_context = DatabaseContext()
+        # Enable scroll on mobile
+        self.page.scroll = ft.ScrollMode.ADAPTIVE
+        
+        # Prevent back button from closing app immediately
         self.page.on_route_change = self.route_change
         self.page.on_view_pop = self.view_pop
+        
+        self.db_context = DatabaseContext()
         self.page.go("/")
 
     def route_change(self, route):
@@ -80,6 +84,8 @@ class GMFMApp:
         self.page.views.pop()
         if self.page.views:
             self.page.go(self.page.views[-1].route)
+        else:
+            self.page.go("/")
 
     def _param(self, key):
         try:
