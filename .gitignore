@@ -1,0 +1,26 @@
+# Flet / Flutter
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.dart_tool/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
