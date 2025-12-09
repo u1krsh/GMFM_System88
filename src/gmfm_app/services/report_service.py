@@ -4,15 +4,23 @@ import io
 from pathlib import Path
 from typing import Dict, Optional
 
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+    getSampleStyleSheet = None
+    colors = None
+    letter = None
+    SimpleDocTemplate = None
 
 from gmfm_app.data.models import Patient, Session
 from gmfm_app.scoring.items_catalog import get_domains
 
-styles = getSampleStyleSheet()
+styles = getSampleStyleSheet() if REPORTLAB_AVAILABLE and getSampleStyleSheet else None
 
 
 def generate_report(
@@ -22,6 +30,22 @@ def generate_report(
     output_path: Path,
     trend_chart: Optional[bytes] = None,
 ) -> Path:
+    if not REPORTLAB_AVAILABLE:
+        # Fallback for when reportlab is missing (Android)
+        # Create a simple text file instead
+        txt_path = output_path.with_suffix(".txt")
+        content = [
+            "GROSS MOTOR FUNCTION MEASURE (GMFM) REPORT",
+            "=========================================",
+            f"Child: {patient.given_name} {patient.family_name}",
+            f"Date: {session.created_at}",
+            f"Total Score: {scoring_result.get('total_percent', 0)}%",
+            "", 
+            "Note: PDF generation is currently disabled on mobile devices."
+        ]
+        txt_path.write_text("\n".join(content))
+        return txt_path
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc = SimpleDocTemplate(str(output_path), pagesize=letter, topMargin=36, bottomMargin=36)
     story = []

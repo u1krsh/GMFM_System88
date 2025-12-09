@@ -5,10 +5,14 @@ from datetime import datetime
 import math
 from typing import Iterable, Sequence, Dict, List
 
-import matplotlib
-
-matplotlib.use("Agg")  # headless rendering
-import matplotlib.pyplot as plt
+try:
+    import matplotlib
+    matplotlib.use("Agg")  # headless rendering
+    import matplotlib.pyplot as plt
+    MATPLOTLIB_AVAILABLE = True
+except ImportError:
+    MATPLOTLIB_AVAILABLE = False
+    plt = None
 
 from gmfm_app.data.models import Session
 from gmfm_app.scoring.engine import calculate_gmfm66, calculate_gmfm88
@@ -16,6 +20,9 @@ from gmfm_app.scoring.engine import calculate_gmfm66, calculate_gmfm88
 
 def render_total_score_trend(sessions: Sequence[Session]) -> bytes:
     """Return PNG bytes representing total score trend for provided sessions."""
+    if not MATPLOTLIB_AVAILABLE:
+        return b""
+        
     if not sessions:
         return b""
 
@@ -39,6 +46,9 @@ def render_total_score_trend(sessions: Sequence[Session]) -> bytes:
 
 def render_score_dashboard(sessions: Sequence[Session]) -> bytes:
     """Render combined chart showing total score and per-domain trends."""
+    if not MATPLOTLIB_AVAILABLE:
+        return b""
+
     if not sessions:
         return b""
 

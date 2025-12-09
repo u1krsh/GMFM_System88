@@ -14,10 +14,23 @@ APP_DB_NAME = "gmfm_app.db"
 def resolve_db_path(explicit: Optional[str] = None) -> Path:
     if explicit:
         return Path(explicit).expanduser().resolve()
-    home = Path.home()
-    app_dir = home / ".gmfm_app"
-    app_dir.mkdir(parents=True, exist_ok=True)
-    return app_dir / APP_DB_NAME
+    
+    # On Android, Path.home() may fail or be inaccessible
+    # Use CWD as fallback which is app's private storage
+    try:
+        home = Path.home()
+        app_dir = home / ".gmfm_app"
+        app_dir.mkdir(parents=True, exist_ok=True)
+        # Test if writable
+        test_file = app_dir / ".test"
+        test_file.write_text("test")
+        test_file.unlink()
+        return app_dir / APP_DB_NAME
+    except Exception:
+        # Fallback to CWD (works on Android)
+        app_dir = Path(".") / ".gmfm_data"
+        app_dir.mkdir(parents=True, exist_ok=True)
+        return app_dir / APP_DB_NAME
 
 
 def init_db(path: Path) -> None:
