@@ -1,12 +1,37 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Sequence
 
-DATA_PATH = Path(__file__).with_name("items_data.json")
+
+def _find_data_path() -> Path:
+    """Find the items_data.json file, handling both dev and bundled scenarios."""
+    # Try relative to this file first (normal case)
+    local_path = Path(__file__).with_name("items_data.json")
+    if local_path.exists():
+        return local_path
+    
+    # Try current working directory (Android bundled case)
+    cwd_path = Path.cwd() / "gmfm_app" / "scoring" / "items_data.json"
+    if cwd_path.exists():
+        return cwd_path
+    
+    # Try relative to FLET_APP_STORAGE_DATA
+    storage = os.getenv("FLET_APP_STORAGE_DATA")
+    if storage:
+        storage_path = Path(storage).parent / "gmfm_app" / "scoring" / "items_data.json"
+        if storage_path.exists():
+            return storage_path
+    
+    # Fallback to local path (will raise error if missing)
+    return local_path
+
+
+DATA_PATH = _find_data_path()
 
 
 @dataclass(frozen=True)

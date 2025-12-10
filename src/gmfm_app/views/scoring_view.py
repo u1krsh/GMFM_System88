@@ -9,6 +9,7 @@ from gmfm_app.data.repositories import PatientRepository, SessionRepository
 from gmfm_app.data.models import Session
 from gmfm_app.scoring.items_catalog import get_domains
 from gmfm_app.scoring.engine import calculate_gmfm_scores
+from gmfm_app.services.haptics import select, success, heavy, warning
 
 
 def get_colors(is_dark):
@@ -71,40 +72,44 @@ class ScoringView(ft.View):
         self.timer_text = ft.Text("0:00", size=12, color=c["TEXT2"])
         self.progress = ft.ProgressBar(value=len(self.scores) / self.total_items if self.total_items > 0 else 0, color=PRIMARY, bgcolor=c["BORDER"], bar_height=4)
         
-        header = ft.Container(
-            content=ft.Column([
-                ft.Row([
-                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=self._go_back),
-                    ft.Column([
-                        ft.Text(self.patient_name, size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                        ft.Row([ft.Icon("timer", size=14, color=c["TEXT3"]), self.timer_text], spacing=4),
-                    ], spacing=2, expand=True),
-                    ft.PopupMenuButton(
-                        icon="more_vert",
-                        icon_color=c["TEXT2"],
-                        items=[
-                            ft.PopupMenuItem(text="Score all as 0", icon="exposure_zero", on_click=lambda _: self._bulk_score(0)),
-                            ft.PopupMenuItem(text="Score all as 3", icon="looks_3", on_click=lambda _: self._bulk_score(3)),
-                            ft.PopupMenuItem(text="Clear all scores", icon="clear_all", on_click=self._clear_all),
-                            ft.PopupMenuItem(),
-                            ft.PopupMenuItem(text="Copy summary", icon="content_copy", on_click=self._copy_summary),
-                        ],
-                    ),
-                    ft.Container(
-                        content=ft.Row([ft.Icon("skip_next", color=PRIMARY, size=18), ft.Text("Jump", size=12, weight=ft.FontWeight.BOLD, color=PRIMARY)], spacing=4),
-                        padding=ft.padding.symmetric(horizontal=10, vertical=6),
-                        bgcolor=f"{PRIMARY}20",
-                        border_radius=8,
-                        on_click=self._jump_to_unscored,
-                    ),
-                    ft.Container(width=8),
-                    self.score_text,
-                ]),
-                self.progress,
-            ], spacing=10),
-            padding=15,
-            bgcolor=c["CARD"],
-            border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+        header = ft.SafeArea(
+            content=ft.Container(
+                content=ft.Column([
+                    ft.Row([
+                        ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=self._go_back),
+                        ft.Column([
+                            ft.Text(self.patient_name, size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                            ft.Row([ft.Icon("timer", size=14, color=c["TEXT3"]), self.timer_text], spacing=4),
+                        ], spacing=2, expand=True),
+                        ft.PopupMenuButton(
+                            icon="more_vert",
+                            icon_color=c["TEXT2"],
+                            items=[
+                                ft.PopupMenuItem(text="Score all as 0", icon="exposure_zero", on_click=lambda _: self._bulk_score(0)),
+                                ft.PopupMenuItem(text="Score all as 3", icon="looks_3", on_click=lambda _: self._bulk_score(3)),
+                                ft.PopupMenuItem(text="Clear all scores", icon="clear_all", on_click=self._clear_all),
+                                ft.PopupMenuItem(),
+                                ft.PopupMenuItem(text="Copy summary", icon="content_copy", on_click=self._copy_summary),
+                            ],
+                        ),
+                        ft.Container(
+                            content=ft.Row([ft.Icon("skip_next", color=PRIMARY, size=18), ft.Text("Jump", size=12, weight=ft.FontWeight.BOLD, color=PRIMARY)], spacing=4),
+                            padding=ft.padding.symmetric(horizontal=10, vertical=6),
+                            bgcolor=f"{PRIMARY}20",
+                            border_radius=8,
+                            on_click=self._jump_to_unscored,
+                        ),
+                        ft.Container(width=8),
+                        self.score_text,
+                    ]),
+                    self.progress,
+                ], spacing=10),
+                padding=15,
+                bgcolor=c["CARD"],
+                border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+            ),
+            minimum_padding=ft.padding.only(top=5),
+            bottom=False,
         )
 
         # Notes
@@ -224,6 +229,9 @@ class ScoringView(ft.View):
         self._show_celebration()
 
     def _show_celebration(self):
+        # Strong haptic celebration for Nothing Phone 2a
+        heavy(self.page)
+        
         self.page.snack_bar = ft.SnackBar(
             ft.Row([
                 ft.Icon("celebration", color="white"),
@@ -353,6 +361,9 @@ class ScoringView(ft.View):
     def _set_score(self, item_id, value, color):
         c = self.c
         
+        # Haptic feedback - crisp selection click for Nothing Phone 2a
+        select(self.page)
+        
         if value == "NT":
             self.scores.pop(item_id, None)
         else:
@@ -376,6 +387,9 @@ class ScoringView(ft.View):
         elapsed = int(time.time() - self.start_time)
         mins, secs = divmod(elapsed, 60)
         
+        # Success haptic for Nothing Phone 2a
+        success(self.page)
+        
         result = calculate_gmfm_scores(self.scores, scale=self.scale)
         total = result["total_percent"]
 
@@ -392,7 +406,7 @@ class ScoringView(ft.View):
         )
         self.session_repo.create_session(session)
 
-        self.page.snack_bar = ft.SnackBar(ft.Text(f"Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
+        self.page.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
         self.page.snack_bar.open = True
         self.page.update()
         self.page.go(f"/history?patient_id={self.patient_id}")

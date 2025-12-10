@@ -44,24 +44,28 @@ class SessionHistoryView(ft.View):
         patient = self.patient_repo.get_patient(patient_id)
         name = f"{patient.given_name} {patient.family_name}" if patient else "Patient"
 
-        header = ft.Container(
-            content=ft.Row([
-                ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go("/")),
-                ft.Column([
-                    ft.Text(name, size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                    ft.Text("Assessment History", size=12, color=c["TEXT2"]),
-                ], spacing=2, expand=True),
-                ft.Container(
-                    content=ft.Row([ft.Icon("add", color="white", size=18), ft.Text("New", color="white", weight=ft.FontWeight.BOLD, size=13)], spacing=4),
-                    padding=ft.padding.symmetric(horizontal=14, vertical=8),
-                    bgcolor=PRIMARY,
-                    border_radius=10,
-                    on_click=lambda _: self._show_scale_dialog(),
-                ),
-            ]),
-            padding=15,
-            bgcolor=c["CARD"],
-            border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+        header = ft.SafeArea(
+            content=ft.Container(
+                content=ft.Row([
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go("/")),
+                    ft.Column([
+                        ft.Text(name, size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                        ft.Text("Assessment History", size=12, color=c["TEXT2"]),
+                    ], spacing=2, expand=True),
+                    ft.Container(
+                        content=ft.Row([ft.Icon("add", color="white", size=18), ft.Text("New", color="white", weight=ft.FontWeight.BOLD, size=13)], spacing=4),
+                        padding=ft.padding.symmetric(horizontal=14, vertical=8),
+                        bgcolor=PRIMARY,
+                        border_radius=10,
+                        on_click=lambda _: self._show_scale_dialog(),
+                    ),
+                ]),
+                padding=15,
+                bgcolor=c["CARD"],
+                border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+            ),
+            minimum_padding=ft.padding.only(top=5),
+            bottom=False,
         )
 
         self.list = ft.Column(spacing=10, scroll=ft.ScrollMode.ADAPTIVE, expand=True)
@@ -276,22 +280,47 @@ class SessionDetailView(ft.View):
         domains = self.results["domains"]
         total = self.results["total_percent"]
 
-        header = ft.Container(
-            content=ft.Row([
-                ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go(f"/history?patient_id={self.session.patient_id}")),
-                ft.Text("Results", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"], expand=True),
-                ft.IconButton("compare_arrows", icon_color=c["TEXT2"], tooltip="Compare", on_click=lambda _: self._show_compare()),
-                ft.IconButton("picture_as_pdf", icon_color=PRIMARY, on_click=self._export_pdf),
-            ]),
-            padding=ft.padding.symmetric(horizontal=10, vertical=5),
-            bgcolor=c["CARD"],
-            border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+        header = ft.SafeArea(
+            content=ft.Container(
+                content=ft.Row([
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go(f"/history?patient_id={self.session.patient_id}")),
+                    ft.Text("Results", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"], expand=True),
+                    ft.IconButton("share", icon_color=c["TEXT2"], tooltip="Share Summary", on_click=self._share_summary),
+                    ft.IconButton("compare_arrows", icon_color=c["TEXT2"], tooltip="Compare", on_click=lambda _: self._show_compare()),
+                    ft.IconButton("picture_as_pdf", icon_color=PRIMARY, on_click=self._export_pdf),
+                ]),
+                padding=ft.padding.symmetric(horizontal=10, vertical=5),
+                bgcolor=c["CARD"],
+                border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+            ),
+            minimum_padding=ft.padding.only(top=5),
+            bottom=False,
         )
 
+        # Animated score ring
+        score_color = SUCCESS if total >= 70 else WARNING if total >= 40 else ERROR
         score_card = ft.Container(
             content=ft.Column([
-                ft.Text(f"{total:.0f}%", size=48, weight=ft.FontWeight.BOLD, color="white"),
-                ft.Text("Total Score", size=14, color="white"),
+                ft.Stack([
+                    ft.Container(
+                        content=ft.ProgressRing(
+                            value=total / 100,
+                            stroke_width=10,
+                            color="white",
+                            bgcolor=f"{score_color}40",
+                            width=120,
+                            height=120,
+                        ),
+                        alignment=ft.alignment.center,
+                    ),
+                    ft.Container(
+                        content=ft.Text(f"{total:.0f}%", size=32, weight=ft.FontWeight.BOLD, color="white"),
+                        width=120, height=120,
+                        alignment=ft.alignment.center,
+                    ),
+                ]),
+                ft.Container(height=10),
+                ft.Text("Total Score", size=14, color="white", weight=ft.FontWeight.W_500),
                 ft.Text(f"GMFM-{self.session.scale} • {self.session.created_at.strftime('%b %d, %Y')}", size=12, color="white"),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             padding=30,
@@ -350,6 +379,39 @@ class SessionDetailView(ft.View):
         content_list.append(ft.Container(content=export_btn, padding=20, alignment=ft.alignment.center))
 
         self.controls = [header, ft.Container(content=ft.Column(content_list, scroll=ft.ScrollMode.ADAPTIVE), expand=True)]
+
+    def _share_summary(self, e):
+        """Generate a text summary for sharing."""
+        if not self.session or not self.patient:
+            return
+        
+        domains = self.results["domains"]
+        summary_lines = [
+            f"📋 GMFM-{self.session.scale} Assessment Report",
+            f"👤 Patient: {self.patient.given_name} {self.patient.family_name}",
+            f"📅 Date: {self.session.created_at.strftime('%B %d, %Y')}",
+            "",
+            f"🎯 Total Score: {self.results['total_percent']:.1f}%",
+            "",
+            "📊 Domain Scores:",
+        ]
+        
+        domain_emojis = {"A": "🛏️", "B": "🪑", "C": "🐛", "D": "🧍", "E": "🚶"}
+        for d_key, d_val in domains.items():
+            emoji = domain_emojis.get(d_key, "•")
+            name = DOMAIN_NAMES.get(d_key, d_key)
+            summary_lines.append(f"  {emoji} {name}: {d_val['percent']:.0f}%")
+        
+        if self.session.notes:
+            summary_lines.extend(["", f"📝 Notes: {self.session.notes}"])
+        
+        summary = "\n".join(summary_lines)
+        
+        # Copy to clipboard
+        self.page.set_clipboard(summary)
+        self.page.snack_bar = ft.SnackBar(ft.Text("Summary copied to clipboard! 📋"), bgcolor=SUCCESS)
+        self.page.snack_bar.open = True
+        self.page.update()
 
     def _show_compare(self):
         sessions = self.repo.list_sessions_for_patient(self.session.patient_id)
@@ -412,14 +474,18 @@ class CompareView(ft.View):
         r1 = calculate_gmfm_scores(s1.raw_scores, scale=s1.scale)
         r2 = calculate_gmfm_scores(s2.raw_scores, scale=s2.scale)
         
-        header = ft.Container(
-            content=ft.Row([
-                ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go(f"/session?session_id={session1_id}")),
-                ft.Text("Comparison", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-            ]),
-            padding=15,
-            bgcolor=c["CARD"],
-            border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+        header = ft.SafeArea(
+            content=ft.Container(
+                content=ft.Row([
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go(f"/session?session_id={session1_id}")),
+                    ft.Text("Comparison", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                ]),
+                padding=15,
+                bgcolor=c["CARD"],
+                border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+            ),
+            minimum_padding=ft.padding.only(top=5),
+            bottom=False,
         )
         
         diff = r1["total_percent"] - r2["total_percent"]

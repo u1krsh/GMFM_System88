@@ -3,6 +3,7 @@ Settings View - App Configuration
 """
 import flet as ft
 from gmfm_app.data.database import DatabaseContext, db_context
+from gmfm_app.services.haptics import tap, success, warning
 
 
 # Light Theme
@@ -24,14 +25,18 @@ class SettingsView(ft.View):
         self.db_context = db_context
 
         # Header
-        header = ft.Container(
-            content=ft.Row([
-                ft.IconButton("arrow_back", icon_color=TEXT1, on_click=lambda _: self.page.go("/")),
-                ft.Text("Settings", size=20, weight=ft.FontWeight.BOLD, color=TEXT1),
-            ]),
-            padding=ft.padding.symmetric(horizontal=10, vertical=10),
-            bgcolor=CARD,
-            border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
+        header = ft.SafeArea(
+            content=ft.Container(
+                content=ft.Row([
+                    ft.IconButton("arrow_back", icon_color=TEXT1, on_click=lambda _: self.page.go("/")),
+                    ft.Text("Settings", size=20, weight=ft.FontWeight.BOLD, color=TEXT1),
+                ]),
+                padding=ft.padding.symmetric(horizontal=10, vertical=10),
+                bgcolor=CARD,
+                border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
+            ),
+            minimum_padding=ft.padding.only(top=5),
+            bottom=False,
         )
 
         # Theme Toggle
@@ -136,6 +141,7 @@ class SettingsView(ft.View):
         )
 
     def _toggle_theme(self, e):
+        tap(self.page)  # Haptic feedback on toggle
         if self.dark_mode.value:
             self.page.theme_mode = ft.ThemeMode.DARK
             self.page.bgcolor = "#1A1A2E"
@@ -145,6 +151,7 @@ class SettingsView(ft.View):
         self.page.update()
 
     def _export_data(self, e):
+        success(self.page)  # Haptic feedback
         import json
         from pathlib import Path
         from gmfm_app.data.repositories import PatientRepository, SessionRepository
@@ -185,6 +192,7 @@ class SettingsView(ft.View):
 
     def _export_csv(self, e):
         """Export data as CSV for Excel/Sheets."""
+        success(self.page)  # Haptic feedback
         import csv
         from pathlib import Path
         from gmfm_app.data.repositories import PatientRepository, SessionRepository
@@ -228,7 +236,9 @@ class SettingsView(ft.View):
         subprocess.Popen(f'explorer "{export_dir}"')
 
     def _clear_data(self, e):
+        warning(self.page)  # Warning haptic for dangerous action
         def confirm_clear(e):
+            warning(self.page)  # Another warning haptic on confirm
             from gmfm_app.data.database import resolve_db_path
             import os
             db_path = resolve_db_path()

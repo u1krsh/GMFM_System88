@@ -6,6 +6,7 @@ from datetime import datetime
 from gmfm_app.data.database import DatabaseContext
 from gmfm_app.data.repositories import PatientRepository, SessionRepository
 from gmfm_app.data.models import Patient
+from gmfm_app.services.haptics import tap, success, warning
 
 
 def get_colors(is_dark):
@@ -46,15 +47,19 @@ class PatientView(ft.View):
 
         # Header
         title = "Edit Patient" if self.is_edit else "New Patient"
-        header = ft.Container(
-            content=ft.Row([
-                ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go("/")),
-                ft.Text(title, size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], expand=True),
-                ft.IconButton("delete", icon_color=ERROR, on_click=self._confirm_delete) if self.is_edit else ft.Container(),
-            ]),
-            padding=ft.padding.symmetric(horizontal=15, vertical=10),
-            bgcolor=c["CARD"],
-            border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+        header = ft.SafeArea(
+            content=ft.Container(
+                content=ft.Row([
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go("/")),
+                    ft.Text(title, size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], expand=True),
+                    ft.IconButton("delete", icon_color=ERROR, on_click=self._confirm_delete) if self.is_edit else ft.Container(),
+                ]),
+                padding=ft.padding.symmetric(horizontal=15, vertical=10),
+                bgcolor=c["CARD"],
+                border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
+            ),
+            minimum_padding=ft.padding.only(top=5),
+            bottom=False,
         )
 
         self.given_name = self._field("First Name", c)
@@ -179,12 +184,14 @@ class PatientView(ft.View):
 
     def _save(self, e):
         if not self.given_name.value or not self.family_name.value:
+            warning(self.page)  # Warning haptic for validation error
             self.page.snack_bar = ft.SnackBar(ft.Text("Please fill name fields"), bgcolor=ERROR)
             self.page.snack_bar.open = True
             self.page.update()
             return
 
         try:
+            success(self.page)  # Success haptic
             if self.is_edit and self.existing_patient:
                 # Update existing
                 self.existing_patient.given_name = self.given_name.value

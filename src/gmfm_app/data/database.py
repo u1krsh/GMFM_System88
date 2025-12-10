@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
@@ -14,6 +15,16 @@ APP_DB_NAME = "gmfm_app.db"
 def resolve_db_path(explicit: Optional[str] = None) -> Path:
     if explicit:
         return Path(explicit).expanduser().resolve()
+    
+    # On Android/iOS, use FLET_APP_STORAGE_DATA which points to app's private storage
+    flet_storage = os.getenv("FLET_APP_STORAGE_DATA")
+    if flet_storage:
+        app_dir = Path(flet_storage) / ".gmfm_data"
+        try:
+            app_dir.mkdir(parents=True, exist_ok=True)
+            return app_dir / APP_DB_NAME
+        except Exception:
+            pass
     
     # On Android, Path.home() may fail or be inaccessible
     # Use CWD as fallback which is app's private storage
