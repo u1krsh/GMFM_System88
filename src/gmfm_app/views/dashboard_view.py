@@ -2,10 +2,11 @@
 Dashboard - With Recent Activity and Quick Actions
 """
 import flet as ft
-from datetime import datetime, timedelta
+from datetime import datetime
 from gmfm_app.data.database import DatabaseContext
-from gmfm_app.data.repositories import PatientRepository, SessionRepository
-from gmfm_app.services.haptics import tap, select
+from gmfm_app.data.repositories import StudentRepository, SessionRepository
+from gmfm_app.services.haptics import tap, select, success, warning
+from gmfm_app.services.docx_import_service import parse_docx, import_assessment_to_db
 
 
 def get_colors(is_dark):
@@ -43,16 +44,16 @@ class DashboardView(ft.View):
     def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False):
         c = get_colors(is_dark)
         super().__init__(route="/", padding=0, bgcolor=c["BG"], scroll=ft.ScrollMode.AUTO)
-        self.page = page
+        self._page_ref = page
         self.db_context = db_context
-        self.repo = PatientRepository(db_context)
+        self.repo = StudentRepository(db_context)
         self.session_repo = SessionRepository(db_context)
         self.c = c
         self.search_term = ""  # For search highlighting
 
         # Header with search
         self.search = ft.TextField(
-            hint_text="Search patients...",
+            hint_text="Search students...",
             prefix_icon="search",
             border_radius=12,
             bgcolor=c["CARD"],
@@ -62,7 +63,7 @@ class DashboardView(ft.View):
             hint_style=ft.TextStyle(color=c["TEXT3"]),
             height=46,
             expand=True,
-            on_change=self.filter_patients,
+            on_change=self.filter_students,
             suffix=ft.IconButton(
                 icon="close",
                 icon_size=18,
@@ -88,7 +89,7 @@ class DashboardView(ft.View):
                             ft.Text(get_greeting(), size=14, color=c["TEXT2"]),
                             ft.Text("GMFM Pro", size=22, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                         ], spacing=0, expand=True),
-                        ft.IconButton("settings", icon_color=c["TEXT2"], on_click=lambda _: self.page.go("/settings")),
+                        ft.IconButton("settings", icon_color=c["TEXT2"], on_click=lambda _: self._page_ref.go("/settings")),
                     ]),
                     ft.Container(height=12),
                     self.search,
@@ -102,13 +103,13 @@ class DashboardView(ft.View):
         )
 
         # Stats
-        self.stat_patients = ft.Text("0", size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], no_wrap=True)
+        self.stat_students = ft.Text("0", size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], no_wrap=True)
         self.stat_sessions = ft.Text("0", size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], no_wrap=True)
         self.stat_avg = ft.Text("0%", size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], no_wrap=True)
         
         stats_row = ft.Container(
             content=ft.Row([
-                self._stat_card("Patients", self.stat_patients, "people", PRIMARY),
+                self._stat_card("Students", self.stat_students, "people", PRIMARY),
                 self._stat_card("Sessions", self.stat_sessions, "assessment", SECONDARY),
                 self._stat_card("Avg", self.stat_avg, "trending_up", SUCCESS),
             ], spacing=10),
@@ -118,7 +119,8 @@ class DashboardView(ft.View):
         # Quick Actions
         actions = ft.Container(
             content=ft.Row([
-                self._action("person_add", "New Patient", PRIMARY, lambda _: self.page.go("/patient")),
+                self._action("person_add", "New Student", PRIMARY, lambda _: self._page_ref.go("/student")),
+                self._action("file_upload", "Import DOCX", SECONDARY, self._import_docx),
             ], spacing=10),
             padding=ft.padding.symmetric(horizontal=20, vertical=5),
         )
@@ -140,8 +142,8 @@ class DashboardView(ft.View):
         # Tip of the day
         tip_card = self._build_tip_card()
 
-        # Patients Section
-        self.patient_list = ft.Column(spacing=8)
+        # Students Section
+        self.student_list = ft.Column(spacing=8)
 
         self.controls = [
             header,
@@ -150,26 +152,26 @@ class DashboardView(ft.View):
             recent_section,
             tip_card,
             ft.Container(
-                content=ft.Text("Patients", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                content=ft.Text("Students", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                 padding=ft.padding.only(left=20, bottom=8, top=8),
             ),
             ft.Container(
-                content=self.patient_list, 
+                content=self.student_list, 
                 padding=ft.padding.only(left=20, right=20, bottom=100),  # Bottom padding for nav bar
             ),
         ]
 
-        self.load_patients()
+        self.load_students()
         self._load_recent_activity()
 
     def _load_recent_activity(self):
-        """Load last 3 sessions across all patients."""
+        """Load last 3 sessions across all students."""
         c = self.c
         all_sessions = []
-        for p in self.all_patients:
-            sessions = self.session_repo.list_sessions_for_patient(p.id)
-            for s in sessions:
-                all_sessions.append((p, s))
+        for s in self.all_students:
+            sessions = self.session_repo.list_sessions_for_student(s.id)
+            for sess in sessions:
+                all_sessions.append((s, sess))
         
         # Sort by date, most recent first
         all_sessions.sort(key=lambda x: x[1].created_at, reverse=True)
@@ -181,13 +183,13 @@ class DashboardView(ft.View):
                 ft.Text("No recent activity", size=13, color=c["TEXT3"])
             )
         else:
-            for p, s in all_sessions[:3]:
-                color = SUCCESS if s.total_score >= 70 else WARNING if s.total_score >= 40 else ERROR
+            for st, sess in all_sessions[:3]:
+                color = SUCCESS if sess.total_score >= 70 else WARNING if sess.total_score >= 40 else ERROR
                 self.recent_list.controls.append(
                     ft.Container(
                         content=ft.Row([
                             ft.Container(
-                                content=ft.Text(f"{s.total_score:.0f}%", size=12, weight=ft.FontWeight.BOLD, color="white"),
+                                content=ft.Text(f"{sess.total_score:.0f}%", size=12, weight=ft.FontWeight.BOLD, color="white"),
                                 width=42, height=42,
                                 bgcolor=color,
                                 border_radius=10,
@@ -195,8 +197,8 @@ class DashboardView(ft.View):
                             ),
                             ft.Container(width=10),
                             ft.Column([
-                                ft.Text(f"{p.given_name} {p.family_name}", size=13, weight=ft.FontWeight.W_600, color=c["TEXT1"], no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS),
-                                ft.Text(s.created_at.strftime("%b %d, %H:%M"), size=11, color=c["TEXT3"], no_wrap=True),
+                                ft.Text(f"{st.given_name} {st.family_name}", size=13, weight=ft.FontWeight.W_600, color=c["TEXT1"], no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS),
+                                ft.Text(sess.created_at.strftime("%b %d, %H:%M"), size=11, color=c["TEXT3"], no_wrap=True),
                             ], spacing=2, expand=True),
                             ft.Icon("chevron_right", color=c["TEXT3"], size=18),
                         ]),
@@ -204,7 +206,7 @@ class DashboardView(ft.View):
                         bgcolor=c["CARD"],
                         border_radius=12,
                         border=ft.border.all(1, c["BORDER"]),
-                        on_click=lambda _, sid=s.id: self.page.go(f"/session?session_id={sid}"),
+                        on_click=lambda _, sid=sess.id: self._page_ref.go(f"/session?session_id={sid}"),
                         ink=True,
                     )
                 )
@@ -276,24 +278,24 @@ class DashboardView(ft.View):
             border=ft.border.all(1, f"{PRIMARY}30"),
         )
 
-    def load_patients(self):
-        self.all_patients = self.repo.list_patients(limit=100)
+    def load_students(self):
+        self.all_students = self.repo.list_students(limit=100)
         self._update_stats()
-        self._render(self.all_patients)
+        self._render(self.all_students)
 
     def _update_stats(self):
-        self.stat_patients.value = str(len(self.all_patients))
+        self.stat_students.value = str(len(self.all_students))
         total_sessions = 0
         total_score = 0
-        for p in self.all_patients:
-            sessions = self.session_repo.list_sessions_for_patient(p.id)
+        for s in self.all_students:
+            sessions = self.session_repo.list_sessions_for_student(s.id)
             total_sessions += len(sessions)
-            for s in sessions:
-                total_score += s.total_score or 0
+            for sess in sessions:
+                total_score += sess.total_score or 0
         self.stat_sessions.value = str(total_sessions)
         self.stat_avg.value = f"{total_score / total_sessions:.0f}%" if total_sessions > 0 else "N/A"
 
-    def filter_patients(self, e):
+    def filter_students(self, e):
         term = self.search.value.lower()
         self.search_term = term  # Store for highlighting
         # Show/hide clear button
@@ -301,18 +303,18 @@ class DashboardView(ft.View):
         self.search.update()
         
         if not term:
-            self._render(self.all_patients)
+            self._render(self.all_students)
         else:
-            filtered = [p for p in self.all_patients if term in f"{p.given_name} {p.family_name}".lower()]
+            filtered = [s for s in self.all_students if term in f"{s.given_name} {s.family_name}".lower()]
             self._render(filtered)
 
     def _clear_search(self, e):
-        """Clear the search field and show all patients."""
+        """Clear the search field and show all students."""
         self.search.value = ""
         self.search_term = ""
         self.search.suffix.visible = False
         self.search.update()
-        self._render(self.all_patients)
+        self._render(self.all_students)
 
     def _highlight_text(self, text, term, c):
         """Return text with search term highlighted."""
@@ -341,25 +343,25 @@ class DashboardView(ft.View):
             ft.Text(after, size=14, weight=ft.FontWeight.W_600, color=c["TEXT1"], no_wrap=True),
         ], spacing=0, tight=True)
 
-    def _render(self, patients):
-        self.patient_list.controls.clear()
+    def _render(self, students):
+        self.student_list.controls.clear()
         c = self.c
         
-        if not patients:
-            self.patient_list.controls.append(
+        if not students:
+            self.student_list.controls.append(
                 ft.Container(
                     content=ft.Column([
                         ft.Icon("person_search", size=60, color=c["TEXT3"]),
-                        ft.Text("No patients found", size=16, color=c["TEXT2"]),
-                        ft.TextButton("Add New Patient", on_click=lambda _: self.page.go("/patient")),
+                        ft.Text("No students found", size=16, color=c["TEXT2"]),
+                        ft.TextButton("Add New Student", on_click=lambda _: self._page_ref.go("/student")),
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                     alignment=ft.alignment.center,
                     padding=50,
                 )
             )
         else:
-            for p in patients:
-                latest = self.session_repo.get_latest_session_for_patient(p.id)
+            for s in students:
+                latest = self.session_repo.get_latest_session_for_student(s.id)
                 has_session = latest is not None
                 last_score = f"{latest.total_score:.0f}%" if latest else "New"
                 
@@ -368,11 +370,11 @@ class DashboardView(ft.View):
                 if latest:
                     score_color = SUCCESS if latest.total_score >= 70 else WARNING if latest.total_score >= 40 else ERROR
                 
-                self.patient_list.controls.append(
+                self.student_list.controls.append(
                     ft.Container(
                         content=ft.Row([
                             ft.Container(
-                                content=ft.Text(f"{p.given_name[0]}{p.family_name[0]}".upper(), size=14, weight=ft.FontWeight.BOLD, color="white"),
+                                content=ft.Text(f"{s.given_name[0]}{s.family_name[0]}".upper(), size=14, weight=ft.FontWeight.BOLD, color="white"),
                                 width=42, height=42,
                                 bgcolor=PRIMARY,
                                 border_radius=12,
@@ -380,7 +382,7 @@ class DashboardView(ft.View):
                             ),
                             ft.Container(width=8),
                             ft.Column([
-                                self._highlight_text(f"{p.given_name} {p.family_name}", self.search_term, c),
+                                self._highlight_text(f"{s.given_name} {s.family_name}", self.search_term, c),
                                 ft.Row([
                                     ft.Text("Last:", size=10, color=c["TEXT2"]),
                                     ft.Text(last_score, size=10, weight=ft.FontWeight.BOLD, color=score_color),
@@ -392,49 +394,49 @@ class DashboardView(ft.View):
                                 bgcolor=SUCCESS if has_session else PRIMARY,
                                 border_radius=10,
                                 alignment=ft.alignment.center,
-                                on_click=lambda _, pid=p.id, sid=latest.id if latest else None: self._start_scoring(pid, sid),
+                                on_click=lambda _, sid=s.id, sess_id=latest.id if latest else None: self._start_scoring(sid, sess_id),
                             ),
                             ft.Container(
                                 content=ft.Icon("edit", color=c["TEXT3"], size=18),
                                 width=36, height=36,
                                 border_radius=10,
                                 alignment=ft.alignment.center,
-                                on_click=lambda _, pid=p.id: self.page.go(f"/patient?id={pid}"),
+                                on_click=lambda _, sid=s.id: self._page_ref.go(f"/student?id={sid}"),
                             ),
                             ft.Container(
                                 content=ft.Icon("history", color=c["TEXT2"], size=18),
                                 width=36, height=36,
                                 border_radius=10,
                                 alignment=ft.alignment.center,
-                                on_click=lambda _, pid=p.id: self.page.go(f"/history?patient_id={pid}"),
+                                on_click=lambda _, sid=s.id: self._page_ref.go(f"/history?student_id={sid}"),
                             ),
                         ], spacing=4),
                         padding=10,
                         bgcolor=c["CARD"],
                         border_radius=12,
                         border=ft.border.all(1, c["BORDER"]),
-                        on_click=lambda _, pid=p.id: self.page.go(f"/history?patient_id={pid}"),
+                        on_click=lambda _, sid=s.id: self._page_ref.go(f"/history?student_id={sid}"),
                         ink=True,
                     )
                 )
 
-    def _start_scoring(self, patient_id, session_id=None):
+    def _start_scoring(self, student_id, session_id=None):
         tap(self.page)  # Haptic feedback
         if session_id:
             # Continue existing session
-            self.page.go(f"/scoring?patient_id={patient_id}&session_id={session_id}")
+            self._page_ref.go(f"/scoring?student_id={student_id}&session_id={session_id}")
         else:
             # Show scale selection dialog
-            self._show_scale_dialog(patient_id)
+            self._show_scale_dialog(student_id)
 
-    def _show_scale_dialog(self, patient_id):
+    def _show_scale_dialog(self, student_id):
         c = self.c
         
         def select_scale(scale):
             select(self.page)  # Haptic feedback on selection
             dlg.open = False
-            self.page.update()
-            self.page.go(f"/scoring?patient_id={patient_id}&scale={scale}")
+            self._page_ref.update()
+            self._page_ref.go(f"/scoring?student_id={student_id}&scale={scale}")
         
         dlg = ft.AlertDialog(
             title=ft.Text("Select Assessment Scale"),
@@ -486,6 +488,70 @@ class DashboardView(ft.View):
                 ),
             ], tight=True),
         )
-        self.page.overlay.append(dlg)
+        self._page_ref.overlay.append(dlg)
         dlg.open = True
-        self.page.update()
+        self._page_ref.update()
+
+    def _import_docx(self, e):
+        """Import student data from a DOCX file."""
+        tap(self.page)
+        
+        def on_file_picked(e: ft.FilePickerResultEvent):
+            if not e.files:
+                return
+            
+            file_path = e.files[0].path
+            try:
+                # Parse the DOCX file
+                assessment = parse_docx(file_path)
+                
+                if not assessment.is_valid:
+                    self._page_ref.snack_bar = ft.SnackBar(
+                        ft.Text("Could not extract student name from document"),
+                        bgcolor=ERROR
+                    )
+                    self._page_ref.snack_bar.open = True
+                    self._page_ref.update()
+                    return
+                
+                # Import to database
+                student_id, session_id = import_assessment_to_db(
+                    assessment, self.db_context, scale="88"
+                )
+                
+                # Refresh list
+                self.load_students()
+                self._page_ref.update()
+                
+                scores_count = len(assessment.raw_scores)
+                self._page_ref.snack_bar = ft.SnackBar(
+                    ft.Text(f"Imported {assessment.student_name or assessment.given_name} with {scores_count} scores"),
+                    bgcolor=SUCCESS
+                )
+                self._page_ref.snack_bar.open = True
+                self._page_ref.update()
+                
+            except FileNotFoundError:
+                self._page_ref.snack_bar = ft.SnackBar(
+                    ft.Text("File not found"),
+                    bgcolor=ERROR
+                )
+                self._page_ref.snack_bar.open = True
+                self._page_ref.update()
+            except Exception as ex:
+                self._page_ref.snack_bar = ft.SnackBar(
+                    ft.Text(f"Import failed: {str(ex)}"),
+                    bgcolor=ERROR
+                )
+                self._page_ref.snack_bar.open = True
+                self._page_ref.update()
+        
+        # Create and open file picker
+        file_picker = ft.FilePicker(on_result=on_file_picked)
+        self._page_ref.overlay.append(file_picker)
+        self._page_ref.update()
+        file_picker.pick_files(
+            dialog_title="Select GMFM Assessment DOCX",
+            allowed_extensions=["docx"],
+            allow_multiple=False,
+        )

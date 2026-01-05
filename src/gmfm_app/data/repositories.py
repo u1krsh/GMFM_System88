@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 from typing import List, Optional
+from datetime import datetime, date
 
 from gmfm_app.data.database import DatabaseContext
-from gmfm_app.data.models import Patient, Session
+from gmfm_app.data.models import Student, Session
 
 
 class BaseRepository:
@@ -22,25 +23,25 @@ class BaseRepository:
         return self.db.decrypt(value)
 
 
-class PatientRepository(BaseRepository):
-    def list_patients(self, limit: int = 50) -> List[Patient]:
+class StudentRepository(BaseRepository):
+    def list_students(self, limit: int = 50) -> List[Student]:
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
-            cur.execute("SELECT * FROM patients ORDER BY created_at DESC LIMIT ?", (limit,))
+            cur.execute("SELECT * FROM students ORDER BY created_at DESC LIMIT ?", (limit,))
             rows = cur.fetchall()
-            patients: List[Patient] = []
+            students: List[Student] = []
             for row in rows:
                 data = dict(row)
                 data["given_name"] = self._decrypt(data.get("given_name"))
                 data["family_name"] = self._decrypt(data.get("family_name"))
                 data["identifier"] = self._decrypt(data.get("identifier"))
-                patients.append(Patient(**data))
-            return patients
+                students.append(Student(**data))
+            return students
 
-    def get_patient(self, patient_id: int) -> Optional[Patient]:
+    def get_student(self, student_id: int) -> Optional[Student]:
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
-            cur.execute("SELECT * FROM patients WHERE id = ?", (patient_id,))
+            cur.execute("SELECT * FROM students WHERE id = ?", (student_id,))
             row = cur.fetchone()
             if row is None:
                 return None
@@ -48,45 +49,45 @@ class PatientRepository(BaseRepository):
             data["given_name"] = self._decrypt(data.get("given_name"))
             data["family_name"] = self._decrypt(data.get("family_name"))
             data["identifier"] = self._decrypt(data.get("identifier"))
-            return Patient(**data)
+            return Student(**data)
 
-    def create_patient(self, patient: Patient) -> Patient:
+    def create_student(self, student: Student) -> Student:
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO patients (given_name, family_name, dob, identifier, created_at) VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO students (given_name, family_name, dob, identifier, created_at) VALUES (?, ?, ?, ?, ?)",
                 (
-                    self._encrypt(patient.given_name),
-                    self._encrypt(patient.family_name),
-                    patient.dob.isoformat() if patient.dob else None,
-                    self._encrypt(patient.identifier),
-                    patient.created_at.isoformat(),
+                    self._encrypt(student.given_name),
+                    self._encrypt(student.family_name),
+                    student.dob.isoformat() if student.dob else None,
+                    self._encrypt(student.identifier),
+                    student.created_at.isoformat(),
                 ),
             )
-            patient.id = cur.lastrowid
-            return patient
+            student.id = cur.lastrowid
+            return student
 
-    def update_patient(self, patient: Patient) -> Patient:
-        if patient.id is None:
-            raise ValueError("Patient must have id for update")
+    def update_student(self, student: Student) -> Student:
+        if student.id is None:
+            raise ValueError("Student must have id for update")
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
             cur.execute(
-                "UPDATE patients SET given_name=?, family_name=?, dob=?, identifier=? WHERE id=?",
+                "UPDATE students SET given_name=?, family_name=?, dob=?, identifier=? WHERE id=?",
                 (
-                    self._encrypt(patient.given_name),
-                    self._encrypt(patient.family_name),
-                    patient.dob.isoformat() if patient.dob else None,
-                    self._encrypt(patient.identifier),
-                    patient.id,
+                    self._encrypt(student.given_name),
+                    self._encrypt(student.family_name),
+                    student.dob.isoformat() if student.dob else None,
+                    self._encrypt(student.identifier),
+                    student.id,
                 ),
             )
-            return patient
+            return student
 
-    def delete_patient(self, patient_id: int) -> None:
+    def delete_student(self, student_id: int) -> None:
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
-            cur.execute("DELETE FROM patients WHERE id = ?", (patient_id,))
+            cur.execute("DELETE FROM students WHERE id = ?", (student_id,))
 
 
 class SessionRepository(BaseRepository):
@@ -94,9 +95,9 @@ class SessionRepository(BaseRepository):
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
             cur.execute(
-                "INSERT INTO sessions (patient_id, scale, raw_scores, total_score, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO sessions (student_id, scale, raw_scores, total_score, notes, created_at) VALUES (?, ?, ?, ?, ?, ?)",
                 (
-                    session.patient_id,
+                    session.student_id,
                     session.scale,
                     json.dumps(session.raw_scores),
                     session.total_score if session.total_score is not None else 0.0,
@@ -118,10 +119,10 @@ class SessionRepository(BaseRepository):
             data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
             return Session(**data)
 
-    def list_sessions_for_patient(self, patient_id: int) -> List[Session]:
+    def list_sessions_for_student(self, student_id: int) -> List[Session]:
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
-            cur.execute("SELECT * FROM sessions WHERE patient_id = ? ORDER BY created_at DESC", (patient_id,))
+            cur.execute("SELECT * FROM sessions WHERE student_id = ? ORDER BY created_at DESC", (student_id,))
             rows = cur.fetchall()
             sessions: List[Session] = []
             for r in rows:
@@ -130,12 +131,12 @@ class SessionRepository(BaseRepository):
                 sessions.append(Session(**data))
             return sessions
 
-    def get_latest_session_for_patient(self, patient_id: int) -> Optional[Session]:
+    def get_latest_session_for_student(self, student_id: int) -> Optional[Session]:
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
             cur.execute(
-                "SELECT * FROM sessions WHERE patient_id = ? ORDER BY created_at DESC LIMIT 1",
-                (patient_id,),
+                "SELECT * FROM sessions WHERE student_id = ? ORDER BY created_at DESC LIMIT 1",
+                (student_id,),
             )
             row = cur.fetchone()
             if row is None:

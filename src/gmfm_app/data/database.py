@@ -48,9 +48,17 @@ def init_db(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as conn:
         cursor = conn.cursor()
+        
+        # Migration: Rename patients table to students if exists
+        try:
+            cursor.execute("ALTER TABLE patients RENAME TO students")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass  # Table already renamed or doesn't exist
+            
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS patients (
+            CREATE TABLE IF NOT EXISTS students (
                 id INTEGER PRIMARY KEY,
                 given_name TEXT NOT NULL,
                 family_name TEXT NOT NULL,
@@ -64,13 +72,13 @@ def init_db(path: Path) -> None:
             """
             CREATE TABLE IF NOT EXISTS sessions (
                 id INTEGER PRIMARY KEY,
-                patient_id INTEGER NOT NULL,
+                student_id INTEGER NOT NULL,
                 scale TEXT NOT NULL,
                 raw_scores TEXT NOT NULL,
                 total_score REAL NOT NULL,
                 notes TEXT,
                 created_at TEXT NOT NULL,
-                FOREIGN KEY(patient_id) REFERENCES patients(id)
+                FOREIGN KEY(student_id) REFERENCES students(id)
             );
             """
         )
@@ -82,11 +90,21 @@ def init_db(path: Path) -> None:
             );
             """
         )
-        # Add notes column if it doesn't exist (migration)
+        
+        # Migration: Add notes column if it doesn't exist
         try:
             cursor.execute("ALTER TABLE sessions ADD COLUMN notes TEXT")
         except sqlite3.OperationalError:
-            pass  # Column already exists
+            pass
+            
+        # Migration: Rename patient_id to student_id if needed
+        # SQLite doesn't support renaming columns easily in older versions, 
+        # but modern versions do.
+        try:
+            cursor.execute("ALTER TABLE sessions RENAME COLUMN patient_id TO student_id")
+        except sqlite3.OperationalError:
+            pass
+            
         conn.commit()
 
 

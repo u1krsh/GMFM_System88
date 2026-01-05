@@ -48,7 +48,7 @@ def show_error_page(page: ft.Page, error_msg: str, stack_trace: str = ""):
 try:
     from gmfm_app.data.database import DatabaseContext
     from gmfm_app.views.dashboard_view import DashboardView
-    from gmfm_app.views.patient_view import PatientView
+    from gmfm_app.views.student_view import StudentView
     from gmfm_app.views.scoring_view import ScoringView
     from gmfm_app.views.session_view import SessionHistoryView, SessionDetailView, CompareView
     from gmfm_app.views.settings_view import SettingsView
@@ -135,19 +135,19 @@ class GMFMApp:
         
         if route == "/":
             return DashboardView(self.page, self.db_context, is_dark)
-        elif route.startswith("/patient"):
+        elif route.startswith("/student"):
             pid = self._param_from_route(route, "id")
-            return PatientView(self.page, self.db_context, is_dark, int(pid) if pid else None)
+            return StudentView(self.page, self.db_context, is_dark, int(pid) if pid else None)
         elif route == "/settings":
             return SettingsView(self.page, self.db_context)
         elif route.startswith("/scoring"):
-            pid = self._param_from_route(route, "patient_id")
+            pid = self._param_from_route(route, "student_id")
             sid = self._param_from_route(route, "session_id")
             scale = self._param_from_route(route, "scale") or "88"
             if pid:
                 return ScoringView(self.page, self.db_context, int(pid), int(sid) if sid else None, is_dark, scale)
         elif route.startswith("/history"):
-            pid = self._param_from_route(route, "patient_id")
+            pid = self._param_from_route(route, "student_id")
             if pid:
                 return SessionHistoryView(self.page, self.db_context, int(pid), is_dark)
         elif route.startswith("/compare"):

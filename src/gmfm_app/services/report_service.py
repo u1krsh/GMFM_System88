@@ -17,14 +17,14 @@ except ImportError:
     letter = None
     SimpleDocTemplate = None
 
-from gmfm_app.data.models import Patient, Session
+from gmfm_app.data.models import Student, Session
 from gmfm_app.scoring.items_catalog import get_domains
 
 styles = getSampleStyleSheet() if REPORTLAB_AVAILABLE and getSampleStyleSheet else None
 
 
 def generate_report(
-    patient: Patient,
+    student: Student,
     session: Session,
     scoring_result: Dict[str, object],
     output_path: Path,
@@ -37,7 +37,7 @@ def generate_report(
         content = [
             "GROSS MOTOR FUNCTION MEASURE (GMFM) REPORT",
             "=========================================",
-            f"Child: {patient.given_name} {patient.family_name}",
+            f"Student: {student.given_name} {student.family_name}",
             f"Date: {session.created_at}",
             f"Total Score: {scoring_result.get('total_percent', 0)}%",
             "", 
@@ -55,8 +55,8 @@ def generate_report(
     story.append(Spacer(1, 6))
 
     header_lines = [
-        f"Child's Name: {patient.given_name} {patient.family_name}",
-        f"ID#: {patient.identifier or '—'}",
+        f"Student's Name: {student.given_name} {student.family_name}",
+        f"ID#: {student.identifier or '—'}",
         f"Assessment Date: {session.created_at.strftime('%Y-%m-%d')}",
         f"Scale: GMFM-{session.scale}",
         f"Session ID: {session.id}",

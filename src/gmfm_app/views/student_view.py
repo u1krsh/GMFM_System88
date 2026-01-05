@@ -1,11 +1,11 @@
 """
-Patient Form - With Edit and Delete Support
+Student Form - With Edit and Delete Support
 """
 import flet as ft
 from datetime import datetime
 from gmfm_app.data.database import DatabaseContext
-from gmfm_app.data.repositories import PatientRepository, SessionRepository
-from gmfm_app.data.models import Patient
+from gmfm_app.data.repositories import StudentRepository, SessionRepository
+from gmfm_app.data.models import Student
 from gmfm_app.services.haptics import tap, success, warning
 
 
@@ -27,26 +27,26 @@ WARNING = "#F59E0B"
 ERROR = "#EF4444"
 
 
-class PatientView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, patient_id: int = None):
+class StudentView(ft.View):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None):
         c = get_colors(is_dark)
-        route = f"/patient?id={patient_id}" if patient_id else "/patient"
+        route = f"/student?id={student_id}" if student_id else "/student"
         super().__init__(route=route, padding=0, bgcolor=c["BG"])
         self.page = page
         self.db_context = db_context
-        self.repo = PatientRepository(db_context)
+        self.repo = StudentRepository(db_context)
         self.session_repo = SessionRepository(db_context)
-        self.patient_id = patient_id
+        self.student_id = student_id
         self.c = c
-        self.is_edit = patient_id is not None
-        self.existing_patient = None
+        self.is_edit = student_id is not None
+        self.existing_student = None
 
-        # Load existing patient data if editing
+        # Load existing student data if editing
         if self.is_edit:
-            self.existing_patient = self.repo.get_patient(patient_id)
+            self.existing_student = self.repo.get_student(student_id)
 
         # Header
-        title = "Edit Patient" if self.is_edit else "New Patient"
+        title = "Edit Student" if self.is_edit else "New Student"
         header = ft.SafeArea(
             content=ft.Container(
                 content=ft.Row([
@@ -64,20 +64,20 @@ class PatientView(ft.View):
 
         self.given_name = self._field("First Name", c)
         self.family_name = self._field("Last Name", c)
-        self.identifier = self._field("Patient ID / MRN", c)
+        self.identifier = self._field("Student ID / MRN", c)
         
         self.dob_picker = ft.DatePicker(first_date=datetime(1950, 1, 1), last_date=datetime.now(), on_change=self._set_dob)
         self.selected_dob = None
         self.dob_text = ft.Text("Select date", size=15, color=c["TEXT3"])
 
         # Pre-fill if editing
-        if self.existing_patient:
-            self.given_name.value = self.existing_patient.given_name
-            self.family_name.value = self.existing_patient.family_name
-            self.identifier.value = self.existing_patient.identifier or ""
-            if self.existing_patient.dob:
-                self.selected_dob = self.existing_patient.dob
-                self.dob_text.value = self.existing_patient.dob.strftime("%B %d, %Y")
+        if self.existing_student:
+            self.given_name.value = self.existing_student.given_name
+            self.family_name.value = self.existing_student.family_name
+            self.identifier.value = self.existing_student.identifier or ""
+            if self.existing_student.dob:
+                self.selected_dob = self.existing_student.dob
+                self.dob_text.value = self.existing_student.dob.strftime("%B %d, %Y")
                 self.dob_text.color = c["TEXT1"]
 
         form = ft.Container(
@@ -110,7 +110,7 @@ class PatientView(ft.View):
                 ),
                 ft.Container(height=25),
                 ft.ElevatedButton(
-                    "Update Patient" if self.is_edit else "Save Patient",
+                    "Update Student" if self.is_edit else "Save Student",
                     icon="save",
                     bgcolor=PRIMARY,
                     color="white",
@@ -155,14 +155,14 @@ class PatientView(ft.View):
         
         def do_delete(e):
             # Delete all sessions first
-            sessions = self.session_repo.list_sessions_for_patient(self.patient_id)
+            sessions = self.session_repo.list_sessions_for_student(self.student_id)
             for s in sessions:
                 self.session_repo.delete_session(s.id)
-            # Delete patient
-            self.repo.delete_patient(self.patient_id)
+            # Delete student
+            self.repo.delete_student(self.student_id)
             dlg.open = False
             self.page.update()
-            self.page.snack_bar = ft.SnackBar(ft.Text("Patient deleted"), bgcolor=WARNING)
+            self.page.snack_bar = ft.SnackBar(ft.Text("Student deleted"), bgcolor=WARNING)
             self.page.snack_bar.open = True
             self.page.go("/")
         
@@ -171,8 +171,8 @@ class PatientView(ft.View):
             self.page.update()
         
         dlg = ft.AlertDialog(
-            title=ft.Text("Delete Patient?"),
-            content=ft.Text("This will delete all assessments for this patient. This cannot be undone."),
+            title=ft.Text("Delete Student?"),
+            content=ft.Text("This will delete all assessments for this student. This cannot be undone."),
             actions=[
                 ft.TextButton("Cancel", on_click=cancel),
                 ft.TextButton("Delete", style=ft.ButtonStyle(color=ERROR), on_click=do_delete),
@@ -192,24 +192,24 @@ class PatientView(ft.View):
 
         try:
             success(self.page)  # Success haptic
-            if self.is_edit and self.existing_patient:
+            if self.is_edit and self.existing_student:
                 # Update existing
-                self.existing_patient.given_name = self.given_name.value
-                self.existing_patient.family_name = self.family_name.value
-                self.existing_patient.identifier = self.identifier.value
-                self.existing_patient.dob = self.selected_dob
-                self.repo.update_patient(self.existing_patient)
-                self.page.snack_bar = ft.SnackBar(ft.Text("Patient updated!"), bgcolor=SUCCESS)
+                self.existing_student.given_name = self.given_name.value
+                self.existing_student.family_name = self.family_name.value
+                self.existing_student.identifier = self.identifier.value
+                self.existing_student.dob = self.selected_dob
+                self.repo.update_student(self.existing_student)
+                self.page.snack_bar = ft.SnackBar(ft.Text("Student updated!"), bgcolor=SUCCESS)
             else:
                 # Create new
-                patient = Patient(
+                student = Student(
                     given_name=self.given_name.value,
                     family_name=self.family_name.value,
                     identifier=self.identifier.value,
                     dob=self.selected_dob
                 )
-                self.repo.create_patient(patient)
-                self.page.snack_bar = ft.SnackBar(ft.Text("Patient saved!"), bgcolor=SUCCESS)
+                self.repo.create_student(student)
+                self.page.snack_bar = ft.SnackBar(ft.Text("Student saved!"), bgcolor=SUCCESS)
             
             self.page.snack_bar.open = True
             self.page.update()

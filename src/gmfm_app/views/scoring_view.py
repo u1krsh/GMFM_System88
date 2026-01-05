@@ -5,7 +5,7 @@ import flet as ft
 import time
 import threading
 from gmfm_app.data.database import DatabaseContext
-from gmfm_app.data.repositories import PatientRepository, SessionRepository
+from gmfm_app.data.repositories import StudentRepository, SessionRepository
 from gmfm_app.data.models import Session
 from gmfm_app.scoring.items_catalog import get_domains
 from gmfm_app.scoring.engine import calculate_gmfm_scores
@@ -34,15 +34,15 @@ DOMAIN_NAMES = {"A": "Lying & Rolling", "B": "Sitting", "C": "Crawling & Kneelin
 
 
 class ScoringView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, patient_id: int, session_id: int = None, is_dark: bool = False, scale: str = "88"):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, session_id: int = None, is_dark: bool = False, scale: str = "88"):
         c = get_colors(is_dark)
-        super().__init__(route=f"/scoring?patient_id={patient_id}", padding=0, bgcolor=c["BG"])
-        self.page = page
+        super().__init__(route=f"/scoring?student_id={student_id}", padding=0, bgcolor=c["BG"])
+        self._page_ref = page
         self.db_context = db_context
-        self.patient_id = patient_id
+        self.student_id = student_id
         self.session_id = session_id
         self.scale = scale  # "66" or "88"
-        self.patient_repo = PatientRepository(db_context)
+        self.student_repo = StudentRepository(db_context)
         self.session_repo = SessionRepository(db_context)
         self.scores = {}
         self.score_buttons = {}
@@ -53,8 +53,8 @@ class ScoringView(ft.View):
         self.start_time = time.time()
         self.timer_running = True
 
-        patient = self.patient_repo.get_patient(patient_id)
-        self.patient_name = f"{patient.given_name} {patient.family_name}" if patient else "Patient"
+        student = self.student_repo.get_student(student_id)
+        self.student_name = f"{student.given_name} {student.family_name}" if student else "Student"
         
         # Get total items for this scale
         domains = get_domains(self.scale)
@@ -78,7 +78,7 @@ class ScoringView(ft.View):
                     ft.Row([
                         ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=self._go_back),
                         ft.Column([
-                            ft.Text(self.patient_name, size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                            ft.Text(self.student_name, size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                             ft.Row([ft.Icon("timer", size=14, color=c["TEXT3"]), self.timer_text], spacing=4),
                         ], spacing=2, expand=True),
                         ft.PopupMenuButton(
@@ -153,7 +153,7 @@ class ScoringView(ft.View):
 
     def _go_back(self, e):
         self.timer_running = False
-        self.page.go("/")
+        self._page_ref.go("/")
 
     def _start_timer(self):
         def update_timer():
@@ -184,9 +184,9 @@ class ScoringView(ft.View):
                             btn.bgcolor = color if is_sel else self.c["CARD"]
                             btn.content.color = "white" if is_sel else self.c["TEXT1"]
         self._update_progress()
-        self.page.snack_bar = ft.SnackBar(ft.Text(f"All items scored as {value}"), bgcolor=SUCCESS)
-        self.page.snack_bar.open = True
-        self.page.update()
+        self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"All items scored as {value}"), bgcolor=SUCCESS)
+        self._page_ref.snack_bar.open = True
+        self._page_ref.update()
 
     def _clear_all(self, e):
         self.scores.clear()
@@ -198,21 +198,21 @@ class ScoringView(ft.View):
                     btn.bgcolor = self.c["CARD"]
                     btn.content.color = self.c["TEXT1"]
         self._update_progress()
-        self.page.snack_bar = ft.SnackBar(ft.Text("All scores cleared"), bgcolor=WARNING)
-        self.page.snack_bar.open = True
-        self.page.update()
+        self._page_ref.snack_bar = ft.SnackBar(ft.Text("All scores cleared"), bgcolor=WARNING)
+        self._page_ref.snack_bar.open = True
+        self._page_ref.update()
 
     def _copy_summary(self, e):
         result = calculate_gmfm_scores(self.scores, scale=self.scale)
-        summary = f"GMFM-{self.scale} Assessment - {self.patient_name}\n"
+        summary = f"GMFM-{self.scale} Assessment - {self.student_name}\n"
         summary += f"Total: {result['total_percent']:.1f}%\n"
         summary += f"Items scored: {len(self.scores)}/{self.total_items}\n\n"
         for d, vals in result["domains"].items():
             summary += f"{DOMAIN_NAMES.get(d, d)}: {vals['percent']:.1f}%\n"
-        self.page.set_clipboard(summary)
-        self.page.snack_bar = ft.SnackBar(ft.Text("Summary copied to clipboard!"), bgcolor=SUCCESS)
-        self.page.snack_bar.open = True
-        self.page.update()
+        self._page_ref.set_clipboard(summary)
+        self._page_ref.snack_bar = ft.SnackBar(ft.Text("Summary copied to clipboard!"), bgcolor=SUCCESS)
+        self._page_ref.snack_bar.open = True
+        self._page_ref.update()
 
     def _jump_to_unscored(self, e):
         domains = get_domains(self.scale)
@@ -221,9 +221,9 @@ class ScoringView(ft.View):
                 if item.number not in self.scores:
                     self.tabs.selected_index = i
                     self.tabs.update()
-                    self.page.snack_bar = ft.SnackBar(ft.Text(f"Jumped to item {item.number}"), bgcolor=PRIMARY)
-                    self.page.snack_bar.open = True
-                    self.page.update()
+                    self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Jumped to item {item.number}"), bgcolor=PRIMARY)
+                    self._page_ref.snack_bar.open = True
+                    self._page_ref.update()
                     return
         # All scored - celebration!
         self._show_celebration()
@@ -232,7 +232,7 @@ class ScoringView(ft.View):
         # Strong haptic celebration for Nothing Phone 2a
         heavy(self.page)
         
-        self.page.snack_bar = ft.SnackBar(
+        self._page_ref.snack_bar = ft.SnackBar(
             ft.Row([
                 ft.Icon("celebration", color="white"),
                 ft.Text(f"All {self.total_items} items scored! 🎉", weight=ft.FontWeight.BOLD, color="white"),
@@ -240,8 +240,8 @@ class ScoringView(ft.View):
             bgcolor=SUCCESS,
             duration=3000,
         )
-        self.page.snack_bar.open = True
-        self.page.update()
+        self._page_ref.snack_bar.open = True
+        self._page_ref.update()
 
     def _update_progress(self):
         self.score_text.value = f"{len(self.scores)} / {self.total_items}"
@@ -398,7 +398,7 @@ class ScoringView(ft.View):
             notes = f"[Duration: {mins}m {secs}s] {notes}"
 
         session = Session(
-            patient_id=self.patient_id,
+            student_id=self.student_id,
             scale=self.scale,
             raw_scores=self.scores,
             total_score=total,
@@ -406,7 +406,7 @@ class ScoringView(ft.View):
         )
         self.session_repo.create_session(session)
 
-        self.page.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
-        self.page.snack_bar.open = True
-        self.page.update()
-        self.page.go(f"/history?patient_id={self.patient_id}")
+        self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
+        self._page_ref.snack_bar.open = True
+        self._page_ref.update()
+        self._page_ref.go(f"/history?student_id={self.student_id}")

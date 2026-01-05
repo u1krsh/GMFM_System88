@@ -4,7 +4,7 @@ Session Views - With Domain Icons and Delete Feature
 import flet as ft
 from pathlib import Path
 from gmfm_app.data.database import DatabaseContext
-from gmfm_app.data.repositories import SessionRepository, PatientRepository
+from gmfm_app.data.repositories import SessionRepository, StudentRepository
 from gmfm_app.scoring.engine import calculate_gmfm_scores
 from gmfm_app.services.report_service import generate_report
 
@@ -31,23 +31,23 @@ DOMAIN_NAMES = {"A": "Lying & Rolling", "B": "Sitting", "C": "Crawling & Kneelin
 
 
 class SessionHistoryView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, patient_id: int, is_dark: bool = False):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, is_dark: bool = False):
         c = get_colors(is_dark)
-        super().__init__(route=f"/history?patient_id={patient_id}", padding=0, bgcolor=c["BG"])
-        self.page = page
+        super().__init__(route=f"/history?student_id={student_id}", padding=0, bgcolor=c["BG"])
+        self._page_ref = page
         self.db_context = db_context
-        self.patient_id = patient_id
+        self.student_id = student_id
         self.repo = SessionRepository(db_context)
-        self.patient_repo = PatientRepository(db_context)
+        self.student_repo = StudentRepository(db_context)
         self.c = c
 
-        patient = self.patient_repo.get_patient(patient_id)
-        name = f"{patient.given_name} {patient.family_name}" if patient else "Patient"
+        student = self.student_repo.get_student(student_id)
+        name = f"{student.given_name} {student.family_name}" if student else "Student"
 
         header = ft.SafeArea(
             content=ft.Container(
                 content=ft.Row([
-                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go("/")),
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self._page_ref.go("/")),
                     ft.Column([
                         ft.Text(name, size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                         ft.Text("Assessment History", size=12, color=c["TEXT2"]),
@@ -74,7 +74,7 @@ class SessionHistoryView(ft.View):
 
     def _load(self):
         c = self.c
-        sessions = self.repo.list_sessions_for_patient(self.patient_id)
+        sessions = self.repo.list_sessions_for_student(self.student_id)
         
         if not sessions:
             self.list.controls.append(
@@ -82,7 +82,7 @@ class SessionHistoryView(ft.View):
                     content=ft.Column([
                         ft.Icon("assignment", size=60, color=c["TEXT3"]),
                         ft.Text("No assessments yet", size=16, color=c["TEXT2"]),
-                        ft.TextButton("Start First Assessment", on_click=lambda _: self.page.go(f"/scoring?patient_id={self.patient_id}")),
+                        ft.TextButton("Start First Assessment", on_click=lambda _: self._page_ref.go(f"/scoring?student_id={self.student_id}")),
                     ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                     alignment=ft.alignment.center,
                     padding=50,
@@ -118,7 +118,7 @@ class SessionHistoryView(ft.View):
                         bgcolor=c["CARD"],
                         border_radius=14,
                         border=ft.border.all(1, c["BORDER"]),
-                        on_click=lambda _, sid=s.id: self.page.go(f"/session?session_id={sid}"),
+                        on_click=lambda _, sid=s.id: self._page_ref.go(f"/session?session_id={sid}"),
                         ink=True,
                     )
                 )
@@ -127,12 +127,12 @@ class SessionHistoryView(ft.View):
         def do_delete(e):
             self.repo.delete_session(session_id)
             dlg.open = False
-            self.page.update()
-            self.page.go(f"/history?patient_id={self.patient_id}")
+            self._page_ref.update()
+            self._page_ref.go(f"/history?student_id={self.student_id}")
         
         def cancel(e):
             dlg.open = False
-            self.page.update()
+            self._page_ref.update()
         
         dlg = ft.AlertDialog(
             title=ft.Text("Delete Assessment?"),
@@ -142,9 +142,9 @@ class SessionHistoryView(ft.View):
                 ft.TextButton("Delete", style=ft.ButtonStyle(color=ERROR), on_click=do_delete),
             ],
         )
-        self.page.overlay.append(dlg)
+        self._page_ref.overlay.append(dlg)
         dlg.open = True
-        self.page.update()
+        self._page_ref.update()
 
     def _show_scale_dialog(self):
         """Show GMFM-66/88 scale selection dialog."""
@@ -152,8 +152,8 @@ class SessionHistoryView(ft.View):
         
         def select_scale(scale):
             dlg.open = False
-            self.page.update()
-            self.page.go(f"/scoring?patient_id={self.patient_id}&scale={scale}")
+            self._page_ref.update()
+            self._page_ref.go(f"/scoring?student_id={self.student_id}&scale={scale}")
         
         dlg = ft.AlertDialog(
             title=ft.Text("Select Assessment Scale"),
@@ -205,9 +205,9 @@ class SessionHistoryView(ft.View):
                 ),
             ], tight=True),
         )
-        self.page.overlay.append(dlg)
+        self._page_ref.overlay.append(dlg)
         dlg.open = True
-        self.page.update()
+        self._page_ref.update()
     def _build_progress_chart(self, sessions):
         c = self.c
         sorted_sessions = sorted(sessions, key=lambda s: s.created_at)
@@ -263,11 +263,11 @@ class SessionDetailView(ft.View):
     def __init__(self, page: ft.Page, db_context: DatabaseContext, session_id: int, is_dark: bool = False):
         c = get_colors(is_dark)
         super().__init__(route=f"/session?session_id={session_id}", padding=0, bgcolor=c["BG"])
-        self.page = page
+        self._page_ref = page
         self.db_context = db_context
         self.session_id = session_id
         self.repo = SessionRepository(db_context)
-        self.patient_repo = PatientRepository(db_context)
+        self.student_repo = StudentRepository(db_context)
         self.c = c
 
         self.session = self.repo.get_session(session_id)
@@ -275,7 +275,7 @@ class SessionDetailView(ft.View):
             self.controls = [ft.Text("Session not found", color=c["TEXT1"])]
             return
 
-        self.patient = self.patient_repo.get_patient(self.session.patient_id)
+        self.student = self.student_repo.get_student(self.session.student_id)
         self.results = calculate_gmfm_scores(self.session.raw_scores, scale=self.session.scale)
         domains = self.results["domains"]
         total = self.results["total_percent"]
@@ -283,7 +283,7 @@ class SessionDetailView(ft.View):
         header = ft.SafeArea(
             content=ft.Container(
                 content=ft.Row([
-                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go(f"/history?patient_id={self.session.patient_id}")),
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self._page_ref.go(f"/history?student_id={self.session.student_id}")),
                     ft.Text("Results", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"], expand=True),
                     ft.IconButton("share", icon_color=c["TEXT2"], tooltip="Share Summary", on_click=self._share_summary),
                     ft.IconButton("compare_arrows", icon_color=c["TEXT2"], tooltip="Compare", on_click=lambda _: self._show_compare()),
@@ -382,13 +382,13 @@ class SessionDetailView(ft.View):
 
     def _share_summary(self, e):
         """Generate a text summary for sharing."""
-        if not self.session or not self.patient:
+        if not self.session or not self.student:
             return
         
         domains = self.results["domains"]
         summary_lines = [
             f"📋 GMFM-{self.session.scale} Assessment Report",
-            f"👤 Patient: {self.patient.given_name} {self.patient.family_name}",
+            f"👤 Student: {self.student.given_name} {self.student.family_name}",
             f"📅 Date: {self.session.created_at.strftime('%B %d, %Y')}",
             "",
             f"🎯 Total Score: {self.results['total_percent']:.1f}%",
@@ -408,59 +408,59 @@ class SessionDetailView(ft.View):
         summary = "\n".join(summary_lines)
         
         # Copy to clipboard
-        self.page.set_clipboard(summary)
-        self.page.snack_bar = ft.SnackBar(ft.Text("Summary copied to clipboard! 📋"), bgcolor=SUCCESS)
-        self.page.snack_bar.open = True
-        self.page.update()
+        self._page_ref.set_clipboard(summary)
+        self._page_ref.snack_bar = ft.SnackBar(ft.Text("Summary copied to clipboard! 📋"), bgcolor=SUCCESS)
+        self._page_ref.snack_bar.open = True
+        self._page_ref.update()
 
     def _show_compare(self):
-        sessions = self.repo.list_sessions_for_patient(self.session.patient_id)
+        sessions = self.repo.list_sessions_for_student(self.session.student_id)
         other_sessions = [s for s in sessions if s.id != self.session_id]
         
         if not other_sessions:
-            self.page.snack_bar = ft.SnackBar(ft.Text("No other sessions to compare"), bgcolor=self.c["TEXT2"])
-            self.page.snack_bar.open = True
-            self.page.update()
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text("No other sessions to compare"), bgcolor=self.c["TEXT2"])
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
             return
         
         def select_session(e, sid):
             dlg.open = False
-            self.page.update()
-            self.page.go(f"/compare?session1={self.session_id}&session2={sid}")
+            self._page_ref.update()
+            self._page_ref.go(f"/compare?session1={self.session_id}&session2={sid}")
         
         options = [ft.ListTile(title=ft.Text(f"GMFM-{s.scale} - {s.total_score:.0f}%"), subtitle=ft.Text(s.created_at.strftime("%b %d, %Y")), on_click=lambda e, sid=s.id: select_session(e, sid)) for s in other_sessions[:5]]
         
         dlg = ft.AlertDialog(title=ft.Text("Compare with..."), content=ft.Column(options, tight=True))
-        self.page.overlay.append(dlg)
+        self._page_ref.overlay.append(dlg)
         dlg.open = True
-        self.page.update()
+        self._page_ref.update()
 
     def _export_pdf(self, e):
-        if not self.session or not self.patient:
+        if not self.session or not self.student:
             return
         import os
         docs_folder = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
         docs_folder.mkdir(parents=True, exist_ok=True)
-        filename = f"GMFM_{self.patient.given_name}_{self.patient.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}.pdf"
+        filename = f"GMFM_{self.student.given_name}_{self.student.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}.pdf"
         output_path = docs_folder / filename
         try:
-            generate_report(patient=self.patient, session=self.session, scoring_result=self.results, output_path=output_path)
-            self.page.snack_bar = ft.SnackBar(ft.Text(f"PDF saved!"), bgcolor=SUCCESS, duration=5000)
-            self.page.snack_bar.open = True
-            self.page.update()
+            generate_report(patient=self.student, session=self.session, scoring_result=self.results, output_path=output_path)
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"PDF saved!"), bgcolor=SUCCESS, duration=5000)
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
             import subprocess
             subprocess.Popen(f'explorer "{docs_folder}"')
         except Exception as ex:
-            self.page.snack_bar = ft.SnackBar(ft.Text(f"Error: {str(ex)}"), bgcolor=ERROR)
-            self.page.snack_bar.open = True
-            self.page.update()
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Error: {str(ex)}"), bgcolor=ERROR)
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
 
 
 class CompareView(ft.View):
     def __init__(self, page: ft.Page, db_context: DatabaseContext, session1_id: int, session2_id: int, is_dark: bool = False):
         c = get_colors(is_dark)
         super().__init__(route=f"/compare?session1={session1_id}&session2={session2_id}", padding=0, bgcolor=c["BG"])
-        self.page = page
+        self._page_ref = page
         self.c = c
         repo = SessionRepository(db_context)
         
@@ -477,7 +477,7 @@ class CompareView(ft.View):
         header = ft.SafeArea(
             content=ft.Container(
                 content=ft.Row([
-                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go(f"/session?session_id={session1_id}")),
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self._page_ref.go(f"/session?session_id={session1_id}")),
                     ft.Text("Comparison", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                 ]),
                 padding=15,
