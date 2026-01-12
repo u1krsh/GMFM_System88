@@ -1,0 +1,74 @@
+{
+  "1": {
+    "number": 1,
+    "title": "Supine, head in midline: turns head with extremities symmetrical",
+    "scoring_criteria": {
+      "0": "does not maintain head in midline",
+      "1": "maintains head in midline 1 to 3 seconds",
+      "2": "maintains head in midline, turns head with extremities asymmetrical",
+      "3": "turns head with extremities symmetrical"
+    },
+    "starting_position": "Position the child with head in midline and, if possible the arms at rest and symmetrical (but not necessarily at the side). This will make it easier to determine the appropriate score.",
+    "instructions": "Instruct the child to turn the head from side to side or follow an object from one side to the other. The child can be instructed to keep the arms still in the case of a younger child who may try to reach for the object, observe whether the upper extremity movements are “symmetrical” or “asymmetrical”. For a score of 2 (extremities “asymmetrical”),there should be very obvious asymmetry that is dominated by head position."
+  },
+  "2": {
+    "number": 2,
+    "title": "Supine: brings hands to midline, fingers one with the other",
+    "scoring_criteria": {
+      "0": "does not initiate bilateral hands to midline",
+      "1": "initiates bilateral hands to midline",
+      "2": "brings hands to front of body, does not finger one with the other",
+      "3": "brings hands to midline, fingers one withthe other"
+    },
+    "starting_position": "Position the child in supine, preferably with the head in midline and arms at rest.",
+    "instructions": "Instruct the child to bring the hands together or to imitate your demonstration. Younger children will frequently bring hands together spontaneously especially in anticipation of a toy presented to them. “Fingers one with the other” indicates that the child must sustain both hands together long enough to show some evidence of finger tip contact of at least one hand with the other (this can be as little as one finger touching the opposite hand but may not be fisted hands touching momentarily). The hands may be touching the body or reaching in space. “Brings hands to front of body” indicates that the child brings both hands within the area in front of the body (i.e., between the shoulders). The hands may be touching the body or in space."
+  },
+  "3": {
+    "number": 3,
+    "title": "Supine: lifts head 45 degrees",
+    "scoring_criteria": {
+      "0": "does not initiate neck flexion",
+      "1": "initiates neck flexion but does not lift head",
+      "2": "lifts head <45 degrees",
+      "3": "lifts head 45 degrees"
+    },
+    "starting_position": "Position the child in supine preferably with the head in midline.",
+    "instructions": "With younger children it may be more difficult. Try to engage their interest in a toy. Then, while still maintaining their attention on the toy, gradually move the toy toward their feet and out of sight. Hopefully they will attempt to lift their head in pursuit of the toy. For a score of 1, “initiates neck flexion” there must be some movement of the head toward neck flexion (i.e., lifting or tucking of the chin). This is an example of a dynamic item, therefore there must be movement observed in the intended direction to achieve any score beyond a zero."
+  },
+  "4": {
+    "number": 4,
+    "title": "Supine: flexes right hip and knee through full range",
+    "scoring_criteria": {
+      "0": "does not initiate right hip and knee flexion",
+      "1": "initiates right hip and knee flexion",
+      "2": "flexes right hip and knee through partial range",
+      "3": "flexes right hip and knee through full range"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and legs in comfortable extension.",
+    "instructions": "Older children may be asked to bring their knee(s) toward their chest. Younger children will often demonstrate this item spontaneously during play (bringing knees or feet to hand or mouth) or in anger (kicking). You may be able to entice a younger child to flex the hip(s) and knee(s) by placing an interesting toy on one or both feet. For “full range” of hip and knee flexion the child’s knee(s) should touch (or almost touch) the chest (depending on the size of the child’s thigh and /or abdomen) and the calf should touch the posterior aspect of the thigh."
+  },
+  "5": {
+    "number": 5,
+    "title": "Supine: flexes left hip and knee through full range:",
+    "scoring_criteria": {
+      "0": "does not initiate left hip and knee flexion",
+      "1": "initiates left hip and knee flexion",
+      "2": "flexes left hip and knee through partial range",
+      "3": "flexes left hip and knee through full range"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and legs in comfortable extension.",
+    "instructions": "The older child may be asked to bring their knee(s) toward their chest. Younger children will often demonstrate this item spontaneously during play (bringing knees or feet to hand or mouth) or in anger(kicking).You may be able to entice a younger child to flex the hip(s) and knee(s) by placing an interesting toy on one or both feet"
+  },
+  "6": {
+    "number": 6,
+    "title": "Supine: reaches out with right arm,hand crosses midline toward toy",
+    "scoring_criteria": {
+      "0": "does not initiate reaching toward midline",
+      "1": "initiates reaching toward midline",
+      "2": "reaches out with right arm, hand does not cross midline",
+      "3": "reaches out with right arm, hand crosses midline toward toy"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and arms at rest (any position is acceptable as long as they are not at or across midline).Position the toy at chest level within easy reach for the child but far enough off the chest that the hand will reach into space.",
+    "instructions": "Most children will respond to being asked to reach toward a small toy held at midline. Then gradually move the toy toward their left to ensure that they cross midline with their right hands. However, the position of the toy will vary according to the child’s ability. For the child who always reaches with two hands or the closest hand, use a larger toy. Pass the toy from the child’s right to left trying to engage both arms in reaching (the hands may not be touching one another) and hopefully achieve the goal of the right hand crossing midline."
+  }
+}

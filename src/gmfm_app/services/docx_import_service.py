@@ -4,6 +4,9 @@ DOCX Import Service - Parse GMFM assessment DOCX files
 Parses DOCX files formatted like GMFCS.docx and extracts:
 - Student information (name, assessment date, evaluator)
 - GMFM-88 scores from tables
+
+NOTE: python-docx is imported lazily inside parse_docx() to avoid
+import errors on Android where the library may not be available.
 """
 from __future__ import annotations
 
@@ -12,8 +15,6 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, Optional, Tuple
-
-from docx import Document
 
 
 @dataclass
@@ -132,8 +133,15 @@ def parse_docx(file_path: str | Path) -> ImportedAssessment:
         
     Raises:
         FileNotFoundError: If file doesn't exist
+        ImportError: If python-docx is not installed
         Exception: If file can't be parsed as DOCX
     """
+    # Lazy import to avoid error on Android
+    try:
+        from docx import Document
+    except ImportError:
+        raise ImportError("python-docx is required for DOCX import. This feature is not available on mobile.")
+    
     file_path = Path(file_path)
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")

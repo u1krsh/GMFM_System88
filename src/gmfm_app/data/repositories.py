@@ -149,3 +149,20 @@ class SessionRepository(BaseRepository):
         with self.db() as conn:  # type: ignore[misc]
             cur = conn.cursor()
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+
+    def update_session(self, session: Session) -> Session:
+        """Update an existing session's scores and notes."""
+        if session.id is None:
+            raise ValueError("Session must have id for update")
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute(
+                "UPDATE sessions SET raw_scores=?, total_score=?, notes=? WHERE id=?",
+                (
+                    json.dumps(session.raw_scores),
+                    session.total_score if session.total_score is not None else 0.0,
+                    session.notes,
+                    session.id,
+                ),
+            )
+            return session

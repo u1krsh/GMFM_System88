@@ -1,26 +1,553 @@
-# Flet / Flutter
-build/
-.flutter-plugins
-.flutter-plugins-dependencies
-.dart_tool/
+# ═══════════════════════════════════════════════════════════════════════════════
+#                           GMFM Pro - Git Ignore
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# Python
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                              PYTHON                                            ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
 .Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytestdebug.log
+
+# Translations
+*.mo
+*.pot
+
+# Virtual environments
+.env
+.venv
 env/
 venv/
-.env
-.venv/
-*.egg-info/
-.pytest_cache/
+ENV/
+env.bak/
+venv.bak/
+.pyenv/
+Pipfile.lock
 
-# OS
-.DS_Store
-Thumbs.db
+# Spyder project settings
+.spyderproject
+.spyproject
 
-# Editor
-.vscode/
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                          FLET / FLUTTER                                        ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+pubspec.lock
+
+# Flet build outputs
+src/build/
+build/android/
+build/ios/
+build/web/
+build/macos/
+build/linux/
+build/windows/
+*.apk
+*.aab
+*.ipa
+*.app
+*.exe
+*.dmg
+*.deb
+*.rpm
+*.snap
+*.flatpak
+*.AppImage
+
+# Generated plugin registrant
+.dart_tool/
+
+# Obfuscation related
+app.*.symbols
+app.*.map.json
+
+# Android Studio / IntelliJ
+**/*.iml
 .idea/
+*.ipr
+*.iws
+
+# Android
+**/android/.gradle/
+**/android/captures/
+**/android/gradlew
+**/android/gradlew.bat
+**/android/local.properties
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+**/android/build/
+**/android/.cxx/
+**/*.jks
+**/*.keystore
+
+# iOS/XCode
+**/ios/.symlinks/
+**/ios/Pods/
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/*.xcworkspace
+**/xcuserdata/
+**/DerivedData/
+**/*.pbxuser
+**/*.mode1v3
+**/*.mode2v3
+**/*.perspectivev3
+**/*.xccheckout
+**/*.moved-aside
+**/*.hmap
+**/*.ipa
+**/*.xcuserstate
+**/.build/
+
+# macOS
+**/macos/Flutter/GeneratedPluginRegistrant.swift
+**/macos/Flutter/ephemeral/
+
+# Windows
+**/windows/flutter/generated_plugin_registrant.cc
+**/windows/flutter/generated_plugin_registrant.h
+**/windows/flutter/ephemeral/
+
+# Linux
+**/linux/flutter/generated_plugin_registrant.cc
+**/linux/flutter/generated_plugin_registrant.h
+**/linux/flutter/ephemeral/
+
+# Web
+**/web/.dart_tool/
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                          DATABASE & DATA                                       ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Data directories (local testing data)
+.gmfm_data/
+data/
+local_data/
+
+# Reports (generated outputs)
+reports/*.pdf
+reports/*.xlsx
+reports/*.csv
+reports/*.html
+reports/generated/
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                              IDE & EDITORS                                     ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# JetBrains IDEs (PyCharm, IntelliJ, etc.)
+.idea/
+*.iml
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*.swn
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.#*
+*.elc
+auto-save-list
+tramp
+.projectile
+
+# Zed
+.zed/
+
+# Fleet
+.fleet/
+
+# Cursor
+.cursor/
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                            OPERATING SYSTEMS                                   ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                              LOGS & TEMP                                       ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Logs
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+.temp/
+.tmp/
+tmp/
+temp/
+
+# Cache directories
+.cache/
+cache/
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                           SECRETS & CREDENTIALS                                ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Environment files with secrets
+.env
+.env.local
+.env.*.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# Secret files
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+secrets/
+credentials/
+.secrets/
+.credentials/
+
+# API keys
+api_keys.json
+api_keys.yaml
+api_keys.yml
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                           DOCUMENTATION BUILD                                  ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Sphinx documentation
+docs/_build/
+docs/api/
+
+# Generated documentation
+*.pdf
+!docs/*.pdf
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                           MISCELLANEOUS                                        ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Node (if using any JS tooling)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Profiling
+*.prof
+*.lprof
+profile_output/
+
+# Crash reports
+crash_reports/
+*.crashlog
+*.ips
+
+# Test artifacts
+test_output/
+test_results/
+screenshots/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Terraform (if used for deployment)
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Large media files (uncomment if needed)
+# *.mp4
+# *.mov
+# *.avi
+# *.mkv
+
+# ╔═══════════════════════════════════════════════════════════════════════════════╗
+# ║                          PROJECT-SPECIFIC                                      ║
+# ╚═══════════════════════════════════════════════════════════════════════════════╝
+
+# Generated architecture/workflow diagrams (keep source, ignore generated)
+# Uncomment these if you want to ignore generated diagrams:
+# architecture_diagram.png
+# workflow_diagram.png
+# problem_diagram.png
+
+# Test database specifically
+test_students.db
+
+# Office Documents (PowerPoint, Word, Excel, PDF)
+*.pptx
+*.ppt
+*.docx
+*.doc
+*.xlsx
+*.xls
+*.pdf
+
+# ───────────────────────────────────────────────────────────────────────────────
+# IMAGES & MEDIA
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Image files
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.ico
+*.icns
+*.tiff
+*.tif
+*.webp
+*.svg
+*.psd
+*.ai
+*.eps
+
+# Generated diagrams (architecture, workflow, problem diagrams)
+*_diagram.png
+*_diagram.svg
+*_diagram.jpg
+
+# Video files
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.wmv
+*.flv
+*.webm
+*.m4v
+
+# Audio files
+*.mp3
+*.wav
+*.flac
+*.aac
+*.ogg
+*.wma
+*.m4a
+
+# ───────────────────────────────────────────────────────────────────────────────
+# FONTS
+# ───────────────────────────────────────────────────────────────────────────────
+*.ttf
+*.otf
+*.woff
+*.woff2
+*.eot
+
+# ───────────────────────────────────────────────────────────────────────────────
+# MISC UNNECESSARY FILES
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Compiled/minified assets
+*.min.js
+*.min.css
+*.map
+
+# OS-generated thumbnails
+._*
+.thumbnails/
+
+# Backup & versioned copies
+*.orig
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+*.REMOTE.*
+*_BACKUP_*
+*_BASE_*
+*_LOCAL_*
+*_REMOTE_*
+
+# Merge artifacts
+*.merge_file_*
+
+# Generated Python scripts (test/debug scripts)
+verify_*.py
+test_*.py
+!tests/test_*.py
+
+# Entry point copies
+entry_point.py
+
+# Egg info
+*.egg-info/
+
+# Agent/AI assistant data
+.gemini/
+.agent/
+.cursor/
+.aider*
+.copilot/
+.github/copilot/
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#                             END OF GITIGNORE
+# ═══════════════════════════════════════════════════════════════════════════════

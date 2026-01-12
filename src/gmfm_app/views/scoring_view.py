@@ -10,6 +10,7 @@ from gmfm_app.data.models import Session
 from gmfm_app.scoring.items_catalog import get_domains
 from gmfm_app.scoring.engine import calculate_gmfm_scores
 from gmfm_app.services.haptics import select, success, heavy, warning
+from gmfm_app.services.instructions_service import get_instruction
 
 
 def get_colors(is_dark):
@@ -346,7 +347,17 @@ class ScoringView(ft.View):
                         alignment=ft.alignment.center,
                     ),
                     ft.Container(width=10),
-                    ft.Text(item.description, size=13, color=c["TEXT1"], expand=True),
+                    ft.Container(
+                        content=ft.Row([
+                            ft.Text(item.description, size=13, color=c["TEXT1"], expand=True),
+                            ft.Icon("info_outline", size=16, color=color),
+                        ], spacing=6),
+                        expand=True,
+                        on_click=lambda e, num=item.number, clr=color: self._show_instructions_dialog(num, clr),
+                        ink=True,
+                        border_radius=6,
+                        padding=4,
+                    ),
                 ]),
                 ft.Container(height=10),
                 ft.Row([*buttons, ft.Container(width=10), nt_btn], spacing=8),
@@ -357,6 +368,146 @@ class ScoringView(ft.View):
             border_radius=12,
             border=ft.border.all(1, c["BORDER"]),
         )
+
+    def _show_instructions_dialog(self, item_number: int, color: str):
+        """Show wireframe popup with exercise instructions."""
+        c = self.c
+        instruction = get_instruction(item_number)
+        
+        if not instruction:
+            self._page_ref.snack_bar = ft.SnackBar(
+                ft.Text(f"No instructions available for item {item_number}"),
+                bgcolor=WARNING
+            )
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
+            return
+        
+        # Build scoring criteria section
+        scoring_items = []
+        for score_val in ["0", "1", "2", "3"]:
+            if score_val in instruction.scoring_criteria:
+                scoring_items.append(
+                    ft.Container(
+                        content=ft.Row([
+                            ft.Container(
+                                content=ft.Text(score_val, size=14, weight=ft.FontWeight.BOLD, color="white"),
+                                width=28, height=28,
+                                bgcolor=color,
+                                border_radius=8,
+                                alignment=ft.alignment.center,
+                            ),
+                            ft.Container(width=10),
+                            ft.Text(instruction.scoring_criteria[score_val], size=12, color=c["TEXT1"], expand=True),
+                        ], vertical_alignment=ft.CrossAxisAlignment.START),
+                        padding=10,
+                        bgcolor=c["CARD"],
+                        border=ft.border.all(1, c["BORDER"]),
+                        border_radius=8,
+                    )
+                )
+        
+        # Build content sections
+        content_sections = []
+        
+        # Scoring section
+        if scoring_items:
+            content_sections.append(
+                ft.Container(
+                    content=ft.Column([
+                        ft.Text("Scoring Criteria", size=14, weight=ft.FontWeight.BOLD, color=color),
+                        ft.Container(height=8),
+                        ft.Column(scoring_items, spacing=6),
+                    ]),
+                    padding=12,
+                    bgcolor=f"{color}10",
+                    border=ft.border.all(2, color),
+                    border_radius=12,
+                )
+            )
+        
+        # Starting Position section
+        if instruction.starting_position:
+            content_sections.append(
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Icon("accessibility_new", size=18, color=PRIMARY),
+                            ft.Container(width=6),
+                            ft.Text("Starting Position", size=14, weight=ft.FontWeight.BOLD, color=PRIMARY),
+                        ]),
+                        ft.Container(height=6),
+                        ft.Text(instruction.starting_position, size=12, color=c["TEXT1"]),
+                    ]),
+                    padding=12,
+                    bgcolor=c["CARD"],
+                    border=ft.border.all(1, c["BORDER"]),
+                    border_radius=12,
+                )
+            )
+        
+        # Instructions section
+        if instruction.instructions:
+            content_sections.append(
+                ft.Container(
+                    content=ft.Column([
+                        ft.Row([
+                            ft.Icon("lightbulb_outline", size=18, color=SUCCESS),
+                            ft.Container(width=6),
+                            ft.Text("Instructions", size=14, weight=ft.FontWeight.BOLD, color=SUCCESS),
+                        ]),
+                        ft.Container(height=6),
+                        ft.Text(instruction.instructions, size=12, color=c["TEXT1"]),
+                    ]),
+                    padding=12,
+                    bgcolor=c["CARD"],
+                    border=ft.border.all(1, c["BORDER"]),
+                    border_radius=12,
+                )
+            )
+        
+        def close_dialog(e):
+            dialog.open = False
+            self._page_ref.update()
+        
+        dialog = ft.AlertDialog(
+            modal=True,
+            title=ft.Container(
+                content=ft.Row([
+                    ft.Container(
+                        content=ft.Text(str(item_number), size=16, weight=ft.FontWeight.BOLD, color="white"),
+                        width=36, height=36,
+                        bgcolor=color,
+                        border_radius=10,
+                        alignment=ft.alignment.center,
+                    ),
+                    ft.Container(width=12),
+                    ft.Text(instruction.title, size=14, weight=ft.FontWeight.W_600, color=c["TEXT1"], expand=True),
+                ]),
+                padding=ft.padding.only(bottom=10),
+                border=ft.border.only(bottom=ft.BorderSide(2, color)),
+            ),
+            content=ft.Container(
+                content=ft.Column(
+                    content_sections,
+                    spacing=12,
+                    scroll=ft.ScrollMode.AUTO,
+                ),
+                width=340,
+                height=400,
+                padding=0,
+            ),
+            actions=[
+                ft.TextButton("Close", on_click=close_dialog),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            bgcolor=c["BG"],
+            shape=ft.RoundedRectangleBorder(radius=16),
+        )
+        
+        self._page_ref.overlay.append(dialog)
+        dialog.open = True
+        self._page_ref.update()
 
     def _set_score(self, item_id, value, color):
         c = self.c
@@ -397,16 +548,38 @@ class ScoringView(ft.View):
         if elapsed > 0:
             notes = f"[Duration: {mins}m {secs}s] {notes}"
 
-        session = Session(
-            student_id=self.student_id,
-            scale=self.scale,
-            raw_scores=self.scores,
-            total_score=total,
-            notes=notes.strip() if notes.strip() else None
-        )
-        self.session_repo.create_session(session)
+        if self.session_id:
+            # Update existing session
+            existing = self.session_repo.get_session(self.session_id)
+            if existing:
+                existing.raw_scores = self.scores
+                existing.total_score = total
+                existing.notes = notes.strip() if notes.strip() else existing.notes
+                self.session_repo.update_session(existing)
+                self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Updated! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
+            else:
+                # Session not found, create new
+                session = Session(
+                    student_id=self.student_id,
+                    scale=self.scale,
+                    raw_scores=self.scores,
+                    total_score=total,
+                    notes=notes.strip() if notes.strip() else None
+                )
+                self.session_repo.create_session(session)
+                self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
+        else:
+            # Create new session
+            session = Session(
+                student_id=self.student_id,
+                scale=self.scale,
+                raw_scores=self.scores,
+                total_score=total,
+                notes=notes.strip() if notes.strip() else None
+            )
+            self.session_repo.create_session(session)
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
 
-        self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
         self._page_ref.snack_bar.open = True
         self._page_ref.update()
         self._page_ref.go(f"/history?student_id={self.student_id}")
