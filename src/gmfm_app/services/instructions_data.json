@@ -49,7 +49,7 @@
   },
   "5": {
     "number": 5,
-    "title": "Supine: flexes left hip and knee through full range:",
+    "title": "Supine: flexes left hip and knee through full range",
     "scoring_criteria": {
       "0": "does not initiate left hip and knee flexion",
       "1": "initiates left hip and knee flexion",
@@ -70,5 +70,689 @@
     },
     "starting_position": "Position the child in supine preferably with head in midline and arms at rest (any position is acceptable as long as they are not at or across midline).Position the toy at chest level within easy reach for the child but far enough off the chest that the hand will reach into space.",
     "instructions": "Most children will respond to being asked to reach toward a small toy held at midline. Then gradually move the toy toward their left to ensure that they cross midline with their right hands. However, the position of the toy will vary according to the child’s ability. For the child who always reaches with two hands or the closest hand, use a larger toy. Pass the toy from the child’s right to left trying to engage both arms in reaching (the hands may not be touching one another) and hopefully achieve the goal of the right hand crossing midline."
+  },
+  "7": {
+    "number": 7,
+    "title": "Supine: reaches out with left arm, and crosses midline toward toy",
+    "scoring_criteria": {
+      "0": "does not initiate reaching toward midline",
+      "1": "initiates reaching toward midline",
+      "2": "reaches out with left arm, hand does not cross midline",
+      "3": "reaches out with left arm, hand crosses midline toward toy"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and arms at rest (any position is acceptable as long as they are not at or across midline).Place the toy at chest level within easy reach for the child but far enough off the chest that the handmust reach into space.",
+    "instructions": "Most children will respond to being asked to reach toward a small toy held at midline. Then gradually move the toy toward their right to ensure they cross midline with their left hands. However, the position of the toy will vary according to the child’s ability. Some therapists have been tempted to hold the right arm down which is not acceptable.For the child who always reaches with two hands or the closest hand, use a larger toy. Pass the toy from the child’s left to right trying to engage both arms in reaching (the hands may not be touching one another) and hopefully achieve the goal of left hand crossing midline."
+  },
+  "8": {
+    "number": 8,
+    "title": "Supine: rolls to prone over right side ",
+    "scoring_criteria": {
+      "0": "does not initiate rolling",
+      "1": "initiates rolling",
+      "2": "rolls part way to prone",
+      "3": "rolls to prone over right side"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and arms and legs comfortably at rest.",
+    "instructions": "With older children simply ask them to roll on to their stomach. Younger children will usually roll toward a toy.This item uses the generic scoring key (i.e., 1 = less than 10%, etc.). Be careful to credit any attempt that includes movement in the direction one would anticipate for rolling to the right. If the child rolls completely to prone but the right arm stays trapped underneath, a score of 3 may be given."
+  },
+  "9": {
+    "number": 9,
+    "title": "Supine: rolls to prone over left side",
+    "scoring_criteria": {
+      "0": "does not initiate rolling",
+      "1": "initiates rolling",
+      "2": "rolls part way to prone",
+      "3": "rolls to prone over left side"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and arms and legs comfortably at rest.",
+    "instructions": "With older children simply ask them to roll on to their stomach. Younger children will usually roll toward a toy. This item uses the generic scoring key (i.e., 1 = less than 10%, etc.). Be careful to credit any attempt that includes movement in the direction one would anticipate for rolling to the left. If the child rolls completely to prone but the left arm stays trapped underneath, a score of 3 may be given."
+  },
+  "10": {
+    "number": 10,
+    "title": "Prone: lifts head upright",
+    "scoring_criteria": {
+      "0": "does not initiate head lifting",
+      "1": "initiates head lifting, chin does not clear mat",
+      "2": "lifts head, does not attain upright, chin clears mat",
+      "3": "lift head upright"
+    },
+    "starting_position": "Position the child in prone with head on the mat and arms and legs comfortably positioned (abdomen and pelvis must be in contact with the mat). The head may be face down or turned to either side. This item is intended to include even the more severely involved (or immature) children who will attempt to lift their head when in prone.By allowing the arms to be in any position a broad spectrum of children are included (including those who are more competent and automatically lift their head upright with weight on forearms).",
+    "instructions": "“Lifts head upright” indicates that the head has reached vertical. It applies to the sagittal plane only (i.e., the eyes are forward but not necessarily horizontal). Children who lift the head (or attempt to) while still turned to the side may meet the criteria for a score of 1 or 2 (depending on whether or not the chin clears the mat). Children who tilt or turn the head slightly to either side but still meet the criteria for “upright” should be given a score of 3."
+  },
+  "11": {
+    "number": 11,
+    "title": "Prone on forearms: lifts head upright, elbows extended, chest raised",
+    "scoring_criteria": {
+      "0": "does not initiate head lifting",
+      "1": "initiates head lifting, chin does not clear mat",
+      "2": "lifts head, does not attain upright, weight on forearms",
+      "3": "lifts head upright, elbows extended, chest raised"
+    },
+    "starting_position": "Position the child in prone with arms positioned for forearm weight bearing and legs in comfortable extension. The head should be on the mat if you anticipate difficulty with head lifting. Otherwise, it may be off the mat.",
+    "instructions": "The child is to be encouraged to lift the head to vertical and extend the arms. Older children may respond to a verbal request or demonstration. Younger children are more likely to respond to a toy held in front of them that is gradually elevated. Although a score of 2 can be achieved by children who can lift the head to less than vertical with weight-on forearms, it must also include children who lift the head to (or beyond) vertical but still have weight on forearms. To obtain a score of 3 the head must be upright, the elbows must be extended enough that they are off the mat, weight must be on the hands, and the chest must be off the mat."
+  },
+  "12": {
+    "number": 12,
+    "title": "Prone on forearms: weight on right forearm, fully extends opposite arm forward",
+    "scoring_criteria": {
+      "0": "does not initiate supporting weight on right forearm",
+      "1": "weight on right forearm, opposite arm comes free, does not extend forward",
+      "2": "weight on right forearm, partially extends opposite arm forward",
+      "3": "weight on right forearm, fully extends opposite arm forward"
+    },
+    "starting_position": "Position the child in prone with arms positioned for forearm weight bearing and legs in comfortable extension. The head may be in any position.",
+    "instructions": "Place a toy at arm’s length in front of the child approximately at eye level and offer encouragement to reach forward and off the mat toward the toy with the left arm. “Fully extends opposite arm forward” implies that the child reaches forward with full elbow extension. For a score of 2, “partially extends opposite arm forward” the reaching arm still does not have to be off the mat. For a score of 3, “fully extend opposite arm forward” the reaching arm must be off the mat. The position of the weight bearing arm is not critical as long as it is in contact with the mat and observed to be bearing weight (frequently it will be across the chest)."
+  },
+  "13": {
+    "number": 13,
+    "title": "Prone on forearms: weight on left arm, fully extends opposite arm forward",
+    "scoring_criteria": {
+      "0": "does not initiate supporting weight on left forearm",
+      "1": "weight on left forearm, opposite arm comes forward but does not extend forward",
+      "2": "weight on left forearm, partially extends opposite arm forward",
+      "3": "weight on left forearm, fully extends opposite arm forward"
+    },
+    "starting_position": "Position the child in prone with arms positioned for weight bearing and legs in comfortable position. The head may be in any position.",
+    "instructions": "Place a toy at arm’s length in front of the child approximately at eye level and offer encouragement to reach forward and off the mat toward the toy with the opposite arm. “Fully extends opposite arm forward” implies that the child reaches forward with full elbow extension and forward shoulder flexion. The child who partially extends the arm forward would be given a score of 2 (including those with contractures). For a score of 1, it is stated that the “opposite arm is free”. This is intended to include any visible indication that weight is being shifted off the weight bearing arm with the intention of reaching. The arm does not need to lift off the mat"
+  },
+  "14": {
+    "number": 14,
+    "title": "Prone: rolls to supine over right side",
+    "scoring_criteria": {
+      "0": "does not initiate rolling",
+      "1": "initiates rolling",
+      "2": "rolls part way to supine",
+      "3": "rolls to supine over right side"
+    },
+    "starting_position": "Position the child in prone with arms and legs comfortably positioned and preferably with head down.",
+    "instructions": "Encourage the child to roll to supine over the right side either by request or following demonstration. The younger child may respond to rolling toward toys or a caregiver. It is not acceptable to position the arms so that any effort results in the child “falling” into supine without any head lifting (e.g., placing the right arm flexed under the head). This item uses the generic scoring key (i.e., 1 = less than 10%, etc.). Remember to credit any attempt that includes movement in the direction one would anticipate for rolling to the right. If the child rolls completely to supine but the feet remain crossed, a score of 3 should be given."
+  },
+  "15": {
+    "number": 15,
+    "title": "Prone: rolls to supine over left side",
+    "scoring_criteria": {
+      "0": "does not initiate rolling",
+      "1": "initiates rolling",
+      "2": "rolls part way to supine",
+      "3": "rolls to supine over left side"
+    },
+    "starting_position": "Position the child in prone with arms and legs comfortably positioned and preferably with head down.",
+    "instructions": "Encourage the child to roll to supine over the left side either by request or following demonstration. The younger child may respond to rolling toward toys or a caregiver. It is not acceptable to position the arms so that any effort results in the child “falling” into supine without any head lifting (e.g., placing the left arm flexed under the head). This item uses the generic scoring key (i.e., 1 = less than 10%, etc.). Remember to credit any attempt that includes movement in the direction one would anticipate for rolling to the left. If the child rolls completely to supine but the feet remain crossed, a score of 3 should be given."
+  },
+  "16": {
+    "number": 16,
+    "title": "Prone: pivots to right 90 degrees using extremities",
+    "scoring_criteria": {
+      "0": "does not initiate pivot to right",
+      "1": "initiates pivot to right using extremities",
+      "2": "pivots to right <90 degrees using extremities",
+      "3": "pivots to right 90 degrees using extremities"
+    },
+    "starting_position": "Position the child comfortably in prone preferably with head down.",
+    "instructions": "Position the toy on the child’s right and offer encouragement to pivot toward it. If you suspect that the child will pivot 90 degrees place the toy beyond 90 degrees. With the toy at 90 degrees some children tend to pivot part way and then reach out for the toy with the right hand and assume they have completed the task!"
+  },
+  "17": {
+    "number": 17,
+    "title": "Prone: pivots to left 90 degrees using extremities",
+    "scoring_criteria": {
+      "0": "does not initiate pivot to left",
+      "1": "initiates pivot to left using extremities",
+      "2": "pivots to left <90 degrees using extremities",
+      "3": "pivots to left 90 degrees using extremities"
+    },
+    "starting_position": "Position the child comfortably in prone preferably with head down.",
+    "instructions": "Position the toy on the child’s left and offer encouragement to pivot toward it. If you suspect that the child will pivot 90 degrees place the toy beyond 90 degrees. With the toy at 90 degrees some children tend to pivot part way and then reach out for the toy with their left hand and assume they have completed the task! The use of any combination of extremities is acceptable as long as the children remain in prone. SITTING This dimension includes 20 items in the prone and supine positions."
+  },
+  "18": {
+    "number": 18,
+    "title": "Supine, hands grasped by examiner: pulls self to sitting with head control",
+    "scoring_criteria": {
+      "0": "does not initiate head control when pulled to sitting",
+      "1": "initiates head control when pulled to sitting",
+      "2": "assists with pulling to sitting,",
+      "3": "head control present part of the time pulls self to sitting with head control"
+    },
+    "starting_position": "Position the child in supine with head preferably midline and arms and legs in comfortable extension.",
+    "instructions": "“Head control” is the ability to maintain the head in line with the spine or slightly forward. To obtain a score of 1, children must demonstrate some attempt at head control at any time while they are being pulled to sit. To obtain a score of 2, children must assist with pulling and demonstrate head control for part of the time. This will include many of the children who “hang on” with flexed elbows while the therapist pulls them to sit and/or the children with some degree of head lag, especially initially. To obtain a score of 3, children must do most of the pulling (it may not be possible to begin in full elbow extension and the elbows must change from relative extension to flexion). The head must be in line with the spine or slightly flexed from beginning to end."
+  },
+  "19": {
+    "number": 19,
+    "title": "Supine: rolls to right side, attains sitting",
+    "scoring_criteria": {
+      "0": "does not initiate sitting from right side lying",
+      "1": "rolls to right side, initiates sitting",
+      "2": "rolls to right side, partially attains sitting",
+      "3": "rolls to right side, attains sitting"
+    },
+    "starting_position": "Position the child in supine preferably with head in midline and arms and legs in comfortable extension.",
+    "instructions": "Instruct the child to attain sitting by first rolling onto the right side. For those children who already use this strategy to assume sitting this item will be easily understood. But for those children who do not use this strategy, more explanation may be required. Many children roll to prone from supine and assume sitting. This method does not match the description for any score and the child would receive a score of zero for this item."
+  },
+  "21": {
+    "number": 21,
+    "title": "Supine: rolls to left side, attains sitting",
+    "scoring_criteria": {
+      "0": "does not initiate sitting from left side lying",
+      "1": "rolls to left side, initiates sitting",
+      "2": "rolls to left side, partially attains sitting",
+      "3": "rolls to left side, attains sitting"
+    },
+    "starting_position": "Position the child in supine preferably with head midline and arms and legs in comfortable extension.",
+    "instructions": "Instruct the child to attain sitting by first rolling onto the left side. For those children who already use this strategy to assume sitting this item will be easily understood."
+  },
+  "22": {
+    "number": 22,
+    "title": "Sitting on mat, supported at thorax by therapist: lifts head upright, maintains 3 seconds",
+    "scoring_criteria": {
+      "0": "does not initiate head lift",
+      "1": "initiates head lift",
+      "2": "lifts head, does not attain upright, holds 3 seconds",
+      "3": "lifts head upright, maintains 3 seconds"
+    },
+    "starting_position": "Position the child in any comfortable sitting position. The head should be flexed forward.",
+    "instructions": "The therapist is to be positioned behind the child with both hands on the thorax. It is strongly advised to have a second person in front of the child holding a toy at the child’s eye level. If this is not possible the use of a wall mirror may help to hold the child’s attention. Instruct the child to lift the head and look forward at the toy. The child is expected to lift the head upright. “Upright” indicates that the head has reached vertical. It applies to the sagittal plane only (i.e., the eyes are forward but not necessarily horizontal)."
+  },
+  "23": {
+    "number": 23,
+    "title": "Sitting on mat, supported at thorax by therapist: lifts head to midline, maintains 10 seconds",
+    "scoring_criteria": {
+      "0": "does not initiate head lift",
+      "1": "initiates head lift, does not attain midline",
+      "2": "lifts head to midline, maintains <10 seconds",
+      "3": "lifts head to midline, maintains 10 seconds"
+    },
+    "starting_position": "Position the child in any comfortable sitting position. The head should be flexed forward.",
+    "instructions": "The therapist is to be positioned behind the child with both hands on the thorax. It is strongly advised to have a second person in front of the child holding a toy at the child’s eye level. If this is not possible the use of a wall mirror may help to hold the child’s attention. Instruct the child to lift the head and look forward at the toy. The child is expected to lift the head to “midline”. “Midline” indicates that the head is “in the middle” or it could be said to be vertical on both the sagittal and frontal planes (i.e., the eyes are forward and horizontal)."
+  },
+  "24": {
+    "number": 24,
+    "title": "Sitting on mat, arm(s) propping: maintains 5 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain with arm(s) propping",
+      "1": "maintains, <1 second",
+      "2": "maintains, 1 to 4 seconds",
+      "3": "maintains, 5 seconds"
+    },
+    "starting_position": "Position the child on the mat in any comfortable sitting position. The arms may be positioned wherever it is most advantageous for propping. This may include in front or at the side or anywhere on the body such as the thighs. Children may also prop with one arm or one arm on top of the other (e.g., hemiplegics). Because this is an observational measure, any contact of the arm(s) on the body or the mat for the purpose of maintaining upright is to be considered “propping”.",
+    "instructions": "The therapist may be positioned wherever it is most appropriate for children to give their best effort. For younger or more involved children, the therapist should be behind the child and a second person can offer encouragement from the front. Having the child facing a mirror may also be helpful. Older children can simply be asked to maintain the position for the required time."
+  },
+  "25": {
+    "number": 25,
+    "title": "Sitting on mat: maintains, arms free, 3 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain unless both arms propping",
+      "1": "maintains, one arm propping",
+      "2": "maintains, arms free, <3 seconds",
+      "3": "maintains, arms free, 3 seconds"
+    },
+    "starting_position": "Position the child on the mat in any comfortable sitting position. The arms may be in any position.",
+    "instructions": "The therapist may be positioned either behind or in front of the child. Many children may choose to begin with “arms propped” and then, in response to a verbal request, or demonstration, they may lift one or both hands. Young children may begin with arms propped and then be enticed to lift one or both arms by reaching for toys held in front of them or by joining in games that involve bilateral hand movements (e.g., clapping). “Arms free” indicates that no weight is taken through the arms for the purpose of attaining or maintaining the sitting position (hands clapping or clasped together is permissible)."
+  },
+  "26": {
+    "number": 26,
+    "title": "Sitting on mat with small toy in front: leans forward, touches toy, re-erects without arm propping",
+    "scoring_criteria": {
+      "0": "does not initiate leaning forward",
+      "1": "leans forward, does not re-erect",
+      "2": "leans forward, touches toy, re-erects with arm propping",
+      "3": "leans forward, touches toy, re-erects without arm propping"
+    },
+    "starting_position": "Position the child on the mat in any comfortable sitting position. The position of the arms will vary according to the ability of the child (to obtain a score of 3 both arms will have to be free) but the child must be reasonably stable in sitting to attempt this item.",
+    "instructions": "Place the toy far enough away from the child so that it is necessary to lean forward to touch it. This will depend on numerous factors (e.g., initial sitting alignment, range of motion of reaching arm, etc.). Allow for at least one trial to determine if the toy is within the child’s reach as well as necessitating leaning forward. For most children this will be approximately between the ankles if they are sitting with their feet in front. For older children, simply ask them to touch the toy and return to sitting without leaning on the opposite arm. Younger children are more difficult to test. Choosing a larger toy to elicit “arms free” is one strategy worth trying."
+  },
+  "27": {
+    "number": 27,
+    "title": "Sitting on mat: touches toy placed 45 degrees behind child’s right side, returns to start",
+    "scoring_criteria": {
+      "0": "does not initiate touching toy",
+      "1": "initiates reaching, does not reach behind",
+      "2": "reaches behind, does not touch toy or return to start",
+      "3": "touches toy placed 45 degrees behind child’s right side, returns to start"
+    },
+    "starting_position": "Position the child on the mat in any comfortable sitting position (this may include W sitting). The position of the arms may vary but the child must be reasonably stable in sitting to attempt this item.",
+    "instructions": "Place the toy 45 degrees behind the child’s right side at a distance that equals an open hand from the buttocks (this may be farther if this helps to motivate the child, but cannot be any closer). One would expect the child to rotate to the right and touch the toy. However, many children exhibit little or no trunk rotation and still succeed in touching the toy. This is definitely acceptable for this item provided they touch the toy with the right hand. Older children may simply be asked to turn and touch the toy with their right hand. Typically, it is more difficult with younger children. The therapist may try passing the toy along the right side to gain their attention and then stopping at the appropriate position, anticipating that the child will attempt to reach for it. It is important to keep their attention on the toy. For a score of 2, “reaches behind”, the hand must reach beyond the greater trochanter."
+  },
+  "28": {
+    "number": 28,
+    "title": "Right side sitting: maintains, arms free, 5 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain right side sitting",
+      "1": "maintains, both arms propping, 5 seconds",
+      "2": "maintains, right arm propping, 5 seconds",
+      "3": "maintains, arms free, 5 seconds"
+    },
+    "starting_position": "Position the child on the mat in right side sitting (i.e., weight is well over the right ischium with both legs flexed to the left and both feet close to or in line with the left hip).",
+    "instructions": "Instruct the child to lift the left arm or both arms. Once you have established which of the three positions will be attempted, then count to 5 seconds. If the child is unable to maintain the position for 5 seconds then try at a lower level and count to 5 seconds."
+  },
+  "29": {
+    "number": 29,
+    "title": "Left side sitting: maintains, arms free, 5 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain left side sitting",
+      "1": "maintains, both arms propping, 5 seconds",
+      "2": "maintains, left arm propping, 5 seconds",
+      "3": "maintains, arms free, 5 seconds"
+    },
+    "starting_position": "Position the child on the mat in left side sitting (i.e., weight is well over the left ischium with both legs flexed to the right and both feet close to or in line with the right hip). Children may begin with both arms propped and then try to graduate to left arm propped or arms free. Remember that arms may be propped on their own body or the mat. However, for this item, if they are propping on the mat, the elbow must be off the mat, otherwise it is closer to side lying than side sitting!",
+    "instructions": "Instruct the child to lift the right arm or both arms. Once you have established which of the three positions will be attempted, count to 5 seconds. If the child is unable to maintain the position for 5 seconds then try at a lower level and count to 5 seconds."
+  },
+  "30": {
+    "number": 30,
+    "title": "Sitting on mat: lowers to prone with control",
+    "scoring_criteria": {
+      "0": "does not initiate lowering to prone with control",
+      "1": "initiates lowering to prone with control",
+      "2": "lowers to prone, but “crashes”",
+      "3": "lowers to prone with control"
+    },
+    "starting_position": "Position the child on the mat in any comfortable sitting position. As with several preceding items, the position of the arms may vary and the child must be reasonably stable in sitting to attempt this item.",
+    "instructions": "It is anticipated that children will use their arms to lower with control. “With control” implies that the movement is regulated or directed. Older children may simply be asked to lie down on their stomach. For those who insist on throwing themselves down (“crashing”), ask them to lie down carefully. Some may require demonstration. “Crash” is defined as “to fall, collide or collapse”. It may be seen as movement that is not controlled. It is not intended to include those children who fall over accidentally and then roll to prone. Younger children may be enticed to move to prone with a toy or book. It is often very difficult to get them to prone as they frequently prefer some variation of 4 point."
+  },
+  "31": {
+    "number": 31,
+    "title": "Sitting on mat with feet in front: attains 4 point over right side",
+    "scoring_criteria": {
+      "0": "does not initiate 4 point over right side",
+      "1": "initiates 4 point over right side",
+      "2": "partially attains 4 point over right side",
+      "3": "attains 4 point over right side"
+    },
+    "starting_position": "Position the child on the mat in a sitting position with the legs comfortably in front of him. Note that this differs from #30 (i.e., W sitting is not acceptable for this item).",
+    "instructions": "It is anticipated that children will move through some variation of right side sitting or move forward and to the right over their right leg. It is also expected that they will accomplish this by taking weight onto their arms. It is not important whether they take weight first onto one or both forearms and then extend their arms later or if they immediately take weight onto their hands. However, they may not assume prone first and then progress to 4 point from prone (assuming 4 point from prone is assessed in item #41)."
+  },
+  "32": {
+    "number": 32,
+    "title": "Sitting on mat with feet in front: attains 4 point over left side",
+    "scoring_criteria": {
+      "0": "does not initiate 4 point over left side",
+      "1": "initiates 4 point over left side",
+      "2": "partially attains 4 point over left side",
+      "3": "attains 4 point over left side"
+    },
+    "starting_position": "Position the child on the mat in a sitting position with the legs comfortably in front of the child. Note that this differs from #30 (i.e., W sitting is not acceptable for this item).",
+    "instructions": "It is anticipated that children will move through some variation of left side sitting or move forward and to the left over their left leg. It is also expected that they will accomplish this by taking weight onto their arms. It is not important whether they take weight first onto one or both forearms and then extend their arms later or if they immediately take weight onto their hands. first onto one or both forearms and then extend their arms later or if they immediately take weight onto their hands. Older children may respond to verbal instruction but many will require further explanation. Demonstration or “walking them through it” may be necessary. Young children will again need to be enticed with strategic placement of toys. This item is frequently easy to elicit in young children who are crawling in 4 point."
+  },
+  "33": {
+    "number": 33,
+    "title": "Sitting on mat: pivots 90 degrees, without arms assisting",
+    "scoring_criteria": {
+      "0": "does not initiate pivoting",
+      "1": "initiates pivoting",
+      "2": "pivots 90 degrees with arms assisting",
+      "3": "pivots 90 degrees without arms assisting"
+    },
+    "starting_position": "The child may begin in any sitting position on the mat. The position of the arms will vary according to whether the arms are assisting or not. As well, the child must be reasonably stable in sitting to attempt this item.",
+    "instructions": "Instruct the child to pivot to the left or right (either direction is acceptable). Many children will benefit from demonstration. Younger children may pivot in pursuit of a toy. As with pivoting in prone, it is advisable to place the toy beyond 90 degrees but within their view. Unfortunately many young children will assume 4 point instead of pivoting. For a score of 2, “arms assisting”, the arms may assist in any manner (i.e., hands moving along the floor as well as the legs, or hands on the legs either for balance or to assist with moving them). For a score of 3, “without arms assisting”, the arms may not be perceived as helping to pivot in any manner. They may be positioned elsewhere on the body or in space (including clasped together)."
+  },
+  "34": {
+    "number": 34,
+    "title": "Sitting on bench: maintains, arms and feet free, 10 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain sitting on bench",
+      "1": "maintains, arms propping and feet supported, 10 seconds",
+      "2": "maintains, arms free and feet supported, 10 seconds",
+      "3": "maintains, arms and feet free, 10 seconds"
+    },
+    "starting_position": "Position the child on the bench with knees at the edge and feet dangling. The position of the arms and support for the feet will depend on the ability of the child.",
+    "instructions": "Place the child on the large bench as if a score of 3 was to be tested (i.e., feet dangling unsupported). If stable sitting is achieved ask the child to lift the arms to the “arms free” position. The therapist may let go of the child before or after the child assumes “arms free”. Time the child for 10 seconds. If the child is unable to maintain for 10 seconds, add support for the feet, then, if necessary, support the feet and allow the hand to be propped. Once it has been established at what level the child is to be tested, offer up to three trials at that level or up to three trials at more than one level (i.e., it is not necessary to count those trials as part of the three allowable trials when the therapist is trying to establish what the child will attempt). Remember that the child must maintain the position for 10 seconds to be credited at any level."
+  },
+  "35": {
+    "number": 35,
+    "title": "Standing: attains sitting on small bench",
+    "scoring_criteria": {
+      "0": "does not initiate sitting on small bench",
+      "1": "initiates sitting on small bench",
+      "2": "partially attains sitting on small bench",
+      "3": "attains sitting on small bench"
+    },
+    "starting_position": "Position the child in standing in front of a small bench (see equipment list for description of small bench). It is acceptable to face toward or away from the bench or be parallel to it. The child may begin standing unsupported or holding on to the bench with one or both hands, but leaning on the bench with any part of the trunk is not acceptable.",
+    "instructions": "This item is intended to determine if children can lower themselves from standing to sitting on the bench. Children are expected to attain sitting on the bench using whatever manner they choose. Some may crawl onto the bench and turn around or they may lower themselves to sitting. Instruct the older child to sit on the bench. Younger children may respond better to demonstration or encouragement with toys. This item is scored using the generic scoring key (i.e., 1 = less than 10%, etc.). For children to obtain a score of 1 they must demonstrate some indication of trying to get on to the bench."
+  },
+  "36": {
+    "number": 36,
+    "title": "On the floor: attains sitting on small bench",
+    "scoring_criteria": {
+      "0": "does not initiate sitting on small bench",
+      "1": "initiates sitting on small bench",
+      "2": "partially attains sitting on small bench",
+      "3": "attains sitting on small bench"
+    },
+    "starting_position": "Position the child on the floor in front of the bench. “On the floor” is intended to be any position other than standing. This may include any lying or sitting position as well as variations of 4 point or kneeling. The child may face toward or away from the bench or be parallel to it.",
+    "instructions": "Contrary to #35 this item is intended to determine if children can raise themselves from the floor to sitting on a small bench. As in #35 children may attain sitting on the small bench using whatever manner they choose. Many will assume standing first but some will attempt to pull themselves onto the bench without using standing in the process. Ask older children to sit on the bench. Provide a demonstration if appropriate. Many children will need a lot of encouragement if this task requires a lot of effort physically. Strategic placement of toys may also help. This item is also scored using the generic scoring key (i.e., 1 = less than 10% etc.). As with #35 any child who demonstrates an attempt to get on the bench should receive a score of 1. This should include any children who attempt to raise themselves from their start position and are moving toward the bench. A score of 2 (10% to less than 100%) should be given to any children who are able to raise themselves to standing at the bench (or almost to standing using the bench for support)."
+  },
+  "37": {
+    "number": 37,
+    "title": "On the floor: attains sitting on large bench",
+    "scoring_criteria": {
+      "0": "does not initiate sitting on large bench",
+      "1": "initiates sitting on large bench",
+      "2": "partially attains sitting on large bench",
+      "3": "attains sitting on large bench"
+    },
+    "starting_position": "Position the child on the floor in front of the bench. “On the floor” is intended to be any position other than standing. This may include lying or sitting, or variations of 4 point or kneeling.",
+    "instructions": "This item is intended to determine if the child can raise himself from the floor to sitting on a large bench Ask older children to climb onto the bench and assume any sitting position. Demonstration may be necessary for suggesting appropriate strategies. A lot of encouragement may be necessary to entice them to make the effort. Younger children often enjoy climbing onto tall furniture but may need further instruction and encouragement to have them assume sitting. CRAWLING AND KNEELING This dimension includes 14 items that deal with various aspects of 4 point and high kneeling. These include the child’s ability to: • assume and/or maintain variations of 4 point and high kneeling • move forward in prone, 4 point or high kneeling • perform specific tasks in 4 point"
+  },
+  "38": {
+    "number": 38,
+    "title": "Prone: creeps forward 6 feet",
+    "scoring_criteria": {
+      "0": "does not initiate creeping forward",
+      "1": "creeps forward <2 feet",
+      "2": "creeps forward 2 to 5 feet",
+      "3": "creeps forward 6 feet"
+    },
+    "starting_position": "Position the child comfortably in prone at one end of an 8 foot mat.",
+    "instructions": "Instruct the child to move forward on the stomach using arms and legs. “Creeping” is defined as moving forward in prone, using the extremities, with the abdomen on the weight bearing surface. This includes any variation of commando crawling. Place a toy on the mat to provide a target for the child to creep toward. The toy should be placed beyond 6 feet to avoid having the child creep less than 6 feet and then reach for it. Use some part of the child’s body (rather than the hand) to judge the distance. Younger children who can crawl in 4 point typically do not understand this item even with demonstration. Setting up a low tunnel that requires creeping in 4 point may be helpful."
+  },
+  "39": {
+    "number": 39,
+    "title": "4 point: maintains, weight on hands and knees, 10 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain weight on hands and knees",
+      "1": "maintains weight on hands and knees, <3 seconds",
+      "2": "maintains weight on hands and knees, 3 to 9 seconds",
+      "3": "maintains weight on hands and knees, 10 seconds"
+    },
+    "starting_position": "Position the child on the mat comfortably in 4 point. “Four point” is defined as weight bearing on the hands and knees. The head, trunk and pelvis must be off the mat and/or the lower legs. Alignment, particularly of the arms and legs, may vary within the above limitations.",
+    "instructions": "Once children appear comfortable in the 4 point position, instruct them to maintain the position for the required time. Looking at something to hold their attention may help to accomplish this item. Therapists must remove their hands from the child before beginning to time the number of seconds. Any observable attempt to maintain the position once therapists remove their hands should be given a score of 1 (even if it is only momentary)."
+  },
+  "40": {
+    "number": 40,
+    "title": "4 Point: attains sitting arms free",
+    "scoring_criteria": {
+      "0": "does not initiate sitting",
+      "1": "initiates sitting",
+      "2": "attains sitting arm(s) propping",
+      "3": "attains sitting arms free"
+    },
+    "starting_position": "Place the child on the mat comfortably in the 4 point position (the child must be able to maintain 4 point to attempt this item).",
+    "instructions": "Instruct the child to assume sitting. Younger children may require demonstration or need to be physically helped through the transition prior to attempting it themselves. The achievement of sitting, arms free, may require engaging them in hand games. For a score of 2 there may be one or two arms propping."
+  },
+  "41": {
+    "number": 41,
+    "title": "Prone: attains 4 point, weight on hands and knees",
+    "scoring_criteria": {
+      "0": "does not initiate 4 point",
+      "1": "initiates 4 point",
+      "2": "partially attains 4 point",
+      "3": "attains 4 point, weight on hands and knees"
+    },
+    "starting_position": "Position the child on the mat comfortably in prone.",
+    "instructions": "Instruct the child to assume 4 point. Remember that alignment in 4 point may vary. Younger children will frequently assume 4 point spontaneously, but others may need to be encouraged verbally or with strategic placement of toys. This item is scored using the generic scoring key (i.e., 1 = less than 10%, etc.) to allow for the variations in initiating 4 point."
+  },
+  "42": {
+    "number": 42,
+    "title": "4 Point: reaches forward with right arm, hand above shoulder level",
+    "scoring_criteria": {
+      "0": "does not initiate reaching forward with right arm",
+      "1": "initiates reaching forward with right arm",
+      "2": "partially reaches forward with right arm",
+      "3": "reaches forward with right arm, hand above shoulder level"
+    },
+    "starting_position": "Position the child comfortably in 4 point on the mat. The child must be able to maintain 4 point to attempt this item.",
+    "instructions": "Older children may simply be asked to reach forward with their right hand above shoulder level. Many children will need to be encouraged to reach forward toward the therapist’s hand or a toy. Placement of the toy is important as it will be the cue that guides the child to extend his right arm forward and reach above shoulder level. Alignment of the legs and left arm is not important as long as the criteria for 4 point continue to be maintained. This item is scored using the generic scoring key (i.e., 1 = less than 10% etc.). The child who reaches forward and above shoulder level but lacks full elbow extension (even though the hand is above shoulder level) should receive a score of 3 for this item (reaching forward and above shoulder level is more important than full elbow extension). However, the child must reach forward far enough that the right hand has moved forward beyond the head."
+  },
+  "43": {
+    "number": 43,
+    "title": "4 Point: reaches forward with left arm, hand above shoulder level",
+    "scoring_criteria": {
+      "0": "does not initiate reaching forward with left arm",
+      "1": "initiates reaching forward with left arm",
+      "2": "partially reaches forward with left arm",
+      "3": "reaches forward with left arm, hand above shoulder level"
+    },
+    "starting_position": "Position the child comfortably in 4 point on the mat. The child must be able to maintain 4 point to attempt this item.",
+    "instructions": "Older children may simply be asked to reach forward with their left hand above shoulder level. Many children will need to be encouraged to reach forward toward the therapist’s hand or a toy. Placement of the toy is important as it will be the cue that guides the child to extend his left arm forward and reach above shoulder level. Alignment of the legs and right arm is not important as long as the criteria for 4 point continue to be maintained. This item is scored using the generic scoring key (i.e., 1 = less than 10%, etc.). The child who reaches forward and above shoulder level but lacks full elbow extension (even though the hand is above shoulder level) should receive a score of 3 for this item (reaching forward and above shoulder level is more important than full elbow extension). However, the child must reach forward far enough that the left hand has moved forward beyond the head."
+  },
+  "44": {
+    "number": 44,
+    "title": "4 Point: crawls or hitches forward 6 feet",
+    "scoring_criteria": {
+      "0": "does not initiate crawling or hitching forward",
+      "1": "crawls or hitches forward <2 feet",
+      "2": "crawls or hitches forward 2 to 5 feet",
+      "3": "crawls or hitches forward 6 feet"
+    },
+    "starting_position": "Position the child comfortably in 4 point at one end of an 8 foot mat. The child must be able to maintain 4 point at least momentarily to attempt this item.",
+    "instructions": "Instruct the child to crawl forward on his hands and knees or hitch to the end of the mat. “Crawling” is defined as moving on hands and knees. The arms and legs do not have to move alternately. “Hitching” is defined as moving jerkily. This includes “bunny hopping” or “bottom hitching” where the child moves forward using arms and/or legs while maintaining some variation of sitting."
+  },
+  "45": {
+    "number": 45,
+    "title": "4 Point: crawls reciprocally forward 6 feet",
+    "scoring_criteria": {
+      "0": "does not initiate crawling forward reciprocally",
+      "1": "crawls reciprocally forward <2 feet",
+      "2": "crawls reciprocally forward 2 to 5 feet",
+      "3": "crawls reciprocally forward 6 feet"
+    },
+    "starting_position": "Position the child comfortably in 4 point at one end of an 8 foot mat. The child must be able to maintain 4 point to attempt this item.",
+    "instructions": "Instruct the child to crawl forward reciprocally to the end of the mat. “Crawling reciprocally” is defined as moving on hands and knees with alternating movements of both the arms and the legs. These alternating movements do not necessarily need to be co-ordinated. Bunny hopping and bottom hitching are not acceptable. Many children will need to be reminded to use reciprocal crawling (versus bunny hopping). Placing a toy on the mat may be appropriate to provide a target for the child to crawl toward. The toy should be placed beyond 6 feet to avoid having the child crawl less than 6 feet and then reach for it. The therapist may also start with the toy close to the child and keep moving it gradually to entice the child to keep moving forward."
+  },
+  "47": {
+    "number": 47,
+    "title": "4 Point: crawls backwards down 4 steps on hands and knees/feet",
+    "scoring_criteria": {
+      "0": "does not initiate crawling backwards down steps",
+      "1": "crawls backwards down 1 step on hands and knees/feet",
+      "2": "crawls backwards down 2 to 3 steps on hands and knees/feet",
+      "3": "crawls backwards down 4 steps on hands and knees/feet"
+    },
+    "starting_position": "Position the child comfortably in 4 point at the top of a minimum of four to six steps that are standard sized (i.e., approximately 7 inch rise).",
+    "instructions": "Instruct the child to crawl down the steps one at a time. A young child may require demonstration or further prompting with the use of toys. The therapist should be behind the child to reduce the possibility of injury from falling. Many children are nervous attempting this activity and require close attention and encouragement. Be careful not to touch them when offering encouragement. Any variation of creeping or crawling is acceptable for this item as long as the child is moving backward feet first down the steps one step at a time (i.e., moving forward in sitting or “sliding” down is not acceptable)."
+  },
+  "48": {
+    "number": 48,
+    "title": "Sitting on mat: attains high kneeling using arms, maintains arms free, 10 seconds",
+    "scoring_criteria": {
+      "0": "when placed, does not maintain, holding on",
+      "1": "when placed, maintains holding on, 10 seconds",
+      "2": "attains high kneeling holding on, maintains 10 seconds",
+      "3": "attains high kneeling using arms, maintains arms free for 10 seconds"
+    },
+    "starting_position": "This is one of the few items in which the starting position varies. To obtain a score of 3, place the child on the mat in any variation of the sitting position. To obtain a score of 2, place the child on the mat in the same position but in front of a bench. To obtain a score of 1, place the child in high kneeling holding on to the bench.",
+    "instructions": "This item may require a few “test trials” to determine whether the child will assume high kneeling from sitting and whether or not the bench will be used. The three trials for scoring can then begin. In high kneeling alignment is not critical as long as the buttocks are clear of the lower leg and/or the mat. To obtain a score of 3, instruct the child to assume high kneeling, using arms. “Using arms” indicates that one or both arms may be used on the mat or any part of the body to assist with assuming high kneeling. Assuming high kneeling without using the arms for assistance is also acceptable. Once high kneeling has been assumed, instruct the child to maintain, arms free, for 10 seconds. (Review “arms free” in Explanation of Terms.) To obtain a score of 2, instruct the child to assume high kneeling holding on to the bench for support or balance with one or both arms. Once high kneeling has been assumed, instruct the child to maintain the position for 10 seconds. The child may continue holding on to the bench during the 10 seconds or let go with one or both hands if preferred. Any use of the bench in assuming or maintaining high kneeling restricts the child to a score of 2."
+  },
+  "49": {
+    "number": 49,
+    "title": "High kneeling: attains half kneeling on right knee using arms, maintains, arms free, 10 seconds",
+    "scoring_criteria": {
+      "0": "When placed, does not maintain holding on, 10 seconds",
+      "1": "When placed, maintains holding on, 10 seconds",
+      "2": "Attains, half kneeling holding on, maintains 10 seconds",
+      "3": "Attains, half kneeling using arms, maintains, arms free, 10 seconds"
+    },
+    "starting_position": "This is also an item in which the starting position varies. To obtain a score of 3, place the child on the mat in high kneeling. To obtain a score of 2, place the child on the mat in the same position but in front of the bench. To obtain a score of 1, place the child on the mat in half kneeling on the right knee holding on to the bench. Any child who cannot maintain high kneeling at the bench cannot be tested for this item and will receive a score of zero.",
+    "instructions": "This item may require a few “test trials” to determine whether or not the child will assume half kneeling on the right knee from high kneeling and whether or not the bench will be used. The three trials for scoring may then begin. (Review “high kneeling” in the Explanation of Terms.) Half kneeling indicates that the weight is taken on one knee and the opposite foot. Alignment is not critical as long as the buttocks are clear of the lower leg and/or the mat. To obtain a score of 3, instruct the child to assume half kneeling on the right knee, using arms. (Review “using arms” in the Explanation of Terms.) Assistance is also acceptable. Once half kneeling has been assumed, ask the child to maintain, arms free, for 10 seconds. (Review “arms free” in Explanation of Terms.) To obtain a score of 2, instruct the child to assume half kneeling on the right knee holding on to the bench for support or balance with one or both arms. Once half kneeling has been assumed, ask the child to maintain the position for 10 seconds. Continuing to hold on to the bench during the 10 seconds or letting go with one or both hands is acceptable. However, any use of the bench in assuming or maintaining half kneeling restricts the child to a score of 2 or less. To obtain a score of 1, instruct the child to maintain half kneeling on the right knee for 10 seconds while holding on to the bench with one or both hands. For each of these scores the 10 second time requirement must be achieved in order for them to be credited with any score. Many children use half kneeling only in transition to standing (if they use it at all). The use of toys as a distraction on the bench may assist with achieving the time requirement."
+  },
+  "50": {
+    "number": 50,
+    "title": "High kneeling: attains half kneeling on left knee using arms, maintains, arms free, 10 seconds",
+    "scoring_criteria": {
+      "0": "when placed, does not maintain holding on",
+      "1": "when placed, maintains holding on, 10 seconds",
+      "2": "attains, half kneeling, holding on, maintains 10 seconds",
+      "3": "attains, half kneeling using arms, maintains, arms free, 10 seconds"
+    },
+    "starting_position": "This is also an item in which the starting position varies. To obtain a score of 3, place the child on the mat in high kneeling. To obtain a score of 2, place the child on the mat in the same position but in front of the bench. To obtain a score of 1, place the child on the mat half kneeling on the left knee holding on to the bench. Any child who cannot maintain high kneeling at the bench cannot be tested for this item and would receive a score of zero.",
+    "instructions": "This item may require a few “test trials” to determine whether or not the child will assume half kneeling on the left knee from high kneeling and whether or not the bench will be used. The three trials for scoring may then begin. (Review “high kneeling” in the Explanation of Terms.) Half kneeling indicates that the weight is taken on one knee and the opposite foot. Alignment is not critical as long as the buttocks are clear of the lower leg and/or the mat. To obtain a score of 3, instruct the child to assume half kneeling on the left knee, using arms. (Review “using arms” in the Explanation of Terms.) Assuming half kneeling without using the arms for assistance is also acceptable. Once half kneeling has been assumed, ask the child to maintain arms free, 10 seconds. (Review “arms free” in Explanation of Terms.) To obtain a score of 2, instruct the child to assume half kneeling on the left knee holding on to bench for support or balance with one or both hands. Once half kneeling has been assumed, ask the child to maintain the position for 10 seconds. Continuing to hold on to the bench during the 10 seconds, either with one or both hands is acceptable. However, any use of the bench in assuming or maintaining half kneeling restricts the child to a score of 2 or less. To obtain a score of 1, instruct the child to maintain half kneeling on the left knee for 10 seconds while holding on to the bench with one or both hands. For each of these scores the 10 second time requirement must be achieved in order for them to be credited with any score. Many children use half kneeling only in transition to standing (if they use it at all!). The use of toys as a distraction on the bench may assist with achieving the time requirement."
+  },
+  "51": {
+    "number": 51,
+    "title": "High kneeling: kneel walks forward 10 steps, arms free",
+    "scoring_criteria": {
+      "0": "does not initiate kneel walking forward",
+      "1": "kneel walks forward 10 steps, 2 hands holding on",
+      "2": "kneel walks forward 10 steps, 1 hand holding on",
+      "3": "kneel walks forward 10 steps, arms free"
+    },
+    "starting_position": "Position the child in high kneeling on the mat. For a score of 1 the child may be holding on to any of the listed equipment (e.g., small bench, parallel bars) or suitable substitute with two hands, and for a score of 2 the child may be holding on with one hand. This does not include holding on to a person. If a particular piece of equipment is used it is advisable to note this in the Comments section of the score sheet and replicate this on subsequent testing. For a score of 3 the child must be positioned in high kneeling, arms free. (Review “arms free” in the Explanation of Terms.) The child must be able to maintain high kneeling holding on with two hands to attempt this item.",
+    "instructions": "Instruct children to walk forward on their knees at least 10 steps. One step forward includes the movement of one leg from “push off” to floor contact. Note that for each of the three possible scores, 10 steps forward must be taken. Several “test trials” may be needed to determine whether or not the child needs to be holding on to equipment, whether or not one or two hands will be used, and, if necessary, which equipment is best for the child to hold on to. It may also be necessary to test what surface is best for the child to kneel walk on, and whether the equipment will move forward easily. STANDING This dimension includes 13 items that deal with various aspects of standing. These include the child’s ability to: • maintain various standing positions • assume standing from various positions • perform specific tasks from the standing position."
+  },
+  "52": {
+    "number": 52,
+    "title": "On the floor: pulls to stand at large bench",
+    "scoring_criteria": {
+      "0": "does not initiate pulling to stand",
+      "1": "initiates pulling to stand",
+      "2": "partially pulls to stand",
+      "3": "pulls to stand at large bench"
+    },
+    "starting_position": "Position the child on the floor in front of the bench. “On the floor” is intended to be any position other than standing. This may include any lying or sitting position as well as any variation of 4 point or kneeling. The child may be in any direction relative to the bench. Starting on the mat (versus the floor) is also acceptable.",
+    "instructions": "Instruct the child to pull to stand at the bench. Younger children may require demonstration or encouragement either verbally or with strategic placement of toys. The intent of this item is to determine the child’s ability to pull to stand versus the quality of stand at completion. This item is scored using the generic scoring key (e.g., 1 = less than 10%, etc.) to allow for the variations in pulling to stand and for the variations in starting position. To obtain a score of 3, children must be on their feet in the upright position, but they may be leaning on the large bench with any part of their body and/or their arms."
+  },
+  "53": {
+    "number": 53,
+    "title": "Standing: maintains, arms free, 3 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain standing, holding on",
+      "1": "maintains, 2 hands holding on, 3 seconds",
+      "2": "maintains, 1 hand holding on, 3 seconds",
+      "3": "maintains arms free, 3 seconds"
+    },
+    "starting_position": "Position the child comfortably in the standing position preferably on the floor (versus the mat). “Standing” is defined as being in the upright position on the feet. Alignment, particularly of the trunk and lower extremities may vary. The standing position will also vary, depending on whether or not the child is holding on and whether it is with one or two hands. (Review “holding on” in the Explanation of Terms.) To obtain a score of 3 the child may be positioned standing on the floor with or without support in preparation for letting go and standing, arms free. (Review “arms free” in the Explanation of Terms.)",
+    "instructions": "To obtain a score of 3, instruct the child to let go of any support and stand, arms free, for 3 seconds. To obtain a score of 2, instruct the child to stand holding onto the equipment with one hand for 3 seconds. Leaning on the equipment with any part of the body other than the one hand is not acceptable. To obtain a score of 1, instruct the child to stand holding onto the equipment with two hands for 3 seconds. Leaning on forearms or touching the equipment with other parts of the body is acceptable provided that the weight is being taken through the arms and legs (versus the trunk)."
+  },
+  "54": {
+    "number": 54,
+    "title": "Standing: holding on to large bench with one hand, lifts right foot, 3 seconds",
+    "scoring_criteria": {
+      "0": "does not initiate lifting right foot",
+      "1": "holding on to large bench with 2 hands, lifts right foot, <3 seconds",
+      "2": "holding on to large bench with 2 hands, lifts right foot, 3 seconds",
+      "3": "holding on to large bench with 1 hand, lifts right foot, 3 seconds"
+    },
+    "starting_position": "Position the child comfortably in the standing position preferably on the floor (versus the mat). holding on to the large bench. Facing the bench is preferable although the child may also be positioned with the bench at the side, especially for a score of 3. To obtain a score of 3, the child begins holding on to the bench with one hand. To obtain a score of 1 or 2 the child begins holding on to the bench with two hands.",
+    "instructions": "This item may require a few “test trials” to determine whether the child will begin holding on to the bench with one or two hands. The leg lifted must clear the floor completely. To obtain a score of 3, instruct the child to lift the right leg for 3 seconds while holding on with one hand. It is not acceptable to lift the right leg while holding on with two hands and then let go with one hand. To obtain a score of 1 or 2, instruct the child to lift the right leg while holding on with both hands. Time the action to determine whether the 3 second requirement is achieved."
+  },
+  "55": {
+    "number": 55,
+    "title": "Standing: holding on to large bench with one hand, lifts left foot, 3 seconds",
+    "scoring_criteria": {
+      "0": "does not initiate lifting left foot",
+      "1": "holding on to large bench with 2 hands, lifts left foot, <3 seconds",
+      "2": "holding on to large bench with 2 hands, lifts left foot, 3 seconds",
+      "3": "holding on to large bench with 1 hand, lifts left foot, 3 seconds"
+    },
+    "starting_position": "Position the child comfortably in the standing position preferably on the floor (versus the mat). holding on to the large bench. Facing the bench is preferable, although the child may also be positioned with the bench at the side, especially for a score of 3. To obtain a score of 3, the child begins holding on to the bench with one hand. To obtain a score of 1 or 2 the child begins holding on to the bench with two hands. The child may not lean on the bench with the trunk, but leaning on one or both forearms is acceptable depending on whether a score of 3 (one hand) or 1 or 2 (two hands) is being attempted.",
+    "instructions": "This item may require a few “test trials” to determine whether the child will begin holding on to the bench with one or two hands. The leg lifted must clear the floor completely. To obtain a score of 3, instruct the child to lift the left leg for 3 seconds while holding on with one hand. It is not acceptable to lift the left leg while holding on with two hands and then let go with one hand. To obtain a score of 1 or 2, instruct the child to lift the left leg while holding on with both hands. Time the action to determine whether the 3 second requirement is achieved."
+  },
+  "56": {
+    "number": 56,
+    "title": "Standing: maintains, arms free, 20 seconds",
+    "scoring_criteria": {
+      "0": "does not maintain standing, arms free",
+      "1": "maintains, arms free <3 seconds",
+      "2": "maintains, arms free 3 to 19 seconds",
+      "3": "maintains, arms free 20 seconds"
+    },
+    "starting_position": "Position the child comfortably in the standing position preferably on the floor (versus the mat). The child may begin with or without support in preparation for letting go and standing, arms free. (Review “standing” and “arms free” in the Explanation of Terms).",
+    "instructions": "This item differs from #53 in that it is the time that varies rather than the support. Children may adjust their stance but may not take a step in any direction. Older children may be encouraged to help “count the seconds”. Younger children may need to be engaged in hand games, etc., to encourage them to remain standing rather than walking."
+  },
+  "57": {
+    "number": 57,
+    "title": "Standing: lifts left foot, arms free, 10 seconds",
+    "scoring_criteria": {
+      "0": "does not lift left foot; arms free",
+      "1": "lifts left foot, arms free, <3 seconds",
+      "2": "lifts left foot, arms free, 3–9 seconds",
+      "3": "lifts left foot, arms free, 10 seconds"
+    },
+    "starting_position": "Position the child comfortably in standing, arms free. The child should be standing on the floor. The mat may be substituted to reduce the possibility of injury from falling, although it may make this item more difficult. (Review “standing” and “arms free” in the Explanation of Terms.)",
+    "instructions": "Instruct the child to lift the left foot so that it is clear of the floor and maintain standing on the right leg for up to 10 seconds. Older children can be encouraged to maintain the position as long as possible by making them aware of the timing process. Younger children may require demonstration (either visual or “hands on”) to ensure that they understand this item, and then further encouragement may be required to maintain the position as long as possible."
+  },
+  "58": {
+    "number": 58,
+    "title": "Standing: lifts right foot, arms free, 10 seconds",
+    "scoring_criteria": {
+      "0": "does not lift right foot, arms free",
+      "1": "lifts right foot, arms free, <3 seconds",
+      "2": "lifts right foot, arms free, 3–9 seconds",
+      "3": "lifts right foot, arms free, 10 seconds"
+    },
+    "starting_position": "Position the child comfortably in standing, arms free. The child should be standing on the floor. The mat may be substituted to reduce injury from falling although it may make this item more difficult. (Review “standing” and “arms free” in the Explanation of Terms.)",
+    "instructions": "Instruct the child to lift the right foot so that it is clear of the floor, and maintain standing on the left leg for up to 10 seconds. Older children can be encouraged to maintain the position as long as possible by making them aware of the timing process. Younger children may require demonstration (either visual or “hands on”) to ensure that they understand this item, and then further encouragement may be required to maintain the position as long as possible."
+  },
+  "59": {
+    "number": 59,
+    "title": "Sitting on small bench: attains standing without using arms",
+    "scoring_criteria": {
+      "0": "does not initiate standing",
+      "1": "initiates standing",
+      "2": "attains standing using arms on bench",
+      "3": "attains standing without using arms"
+    },
+    "starting_position": "Position the child sitting on the small bench. If the small bench is the appropriate height, the child will be sitting with feet flat on the floor and knees flexed at 90 degrees.",
+    "instructions": "Instruct the child to stand up. Younger children need an incentive such as a toy in front of them on the table or in the therapist’s hand to encourage them to stand rather than getting down on the floor. To obtain a score of 3, children must achieve standing, arms free, without any assistance from their arms/hands on the bench in the transition. To obtain a score of 2, children must attain standing, arms free, by using their arms/hands on the bench to help them in the transition from sitting to standing. To obtain a score of 1, the children must initiate an attempt at standing from the bench."
+  },
+  "60": {
+    "number": 60,
+    "title": "High kneeling: attains standing through half kneeling on right knee, without using arms",
+    "scoring_criteria": {
+      "0": "does not initiate standing",
+      "1": "initiates standing",
+      "2": "attains standing using arm(s)",
+      "3": "attains standing through half kneeling on right knee, without using arms"
+    },
+    "starting_position": "Position the child comfortably on the mat in high kneeling, arms free. (Review “high kneeling” and “arms free” in the Explanation of Terms.)",
+    "instructions": "To obtain a score of 3, standing must be assumed from high kneeling without any assistance from the child’s arms either on the mat or the body. Half kneeling on the right knee must be used in the transition from high kneeling to stand. (Review “half kneeling” in the Explanation of Terms.) To obtain a score of 2, standing must be assumed from high kneeling. In this instance, the child’s arms may assist either on the mat or the body. Although half kneeling on the right knee may be used in transition, it is not necessary. Other positions such as squatting on hands and feet are also acceptable. To obtain a score of 1, the child must demonstrate an attempt to assume standing from high kneeling."
+  },
+  "61": {
+    "number": 61,
+    "title": "High kneeling: attains standing through half kneeling on left knee, without using arms",
+    "scoring_criteria": {
+      "0": "does not initiate standing",
+      "1": "initiates standing",
+      "2": "attains standing using arm(s)",
+      "3": "attains standing through half kneeling on left knee, without using arms"
+    },
+    "starting_position": "Position the child comfortably on the mat in high kneeling, arms free. (Review “high kneeling” and “arms free” in the Explanation of Terms.)",
+    "instructions": "To obtain a score of 3, standing must be assumed from high kneeling without any assistance from the child’s arms either on the mat or the body. Half kneeling on the left knee must be used in the transition from high kneeling to stand. (Review “half kneeling” in the Explanation of Terms.) To obtain a score of 2, standing must be assumed from high kneeling. In this instance, the child’s arms may assist either on the mat or the body. Although half kneeling on the left knee may be used in transition, it is not necessary. Other positions such as squatting on hands and feet are also acceptable. To obtain a score of 1, the child must demonstrate an attempt to assume standing from high kneeling."
+  },
+  "62": {
+    "number": 62,
+    "title": "Standing: lowers to sitting on floor with control, arms free",
+    "scoring_criteria": {
+      "0": "does not lower to floor without holding on",
+      "1": "lowers to sitting on floor, but “crashes” down",
+      "2": "lowers to sitting on floor with control, using arm(s) or holding on",
+      "3": "lowers to sitting on floor with control, arms free"
+    },
+    "starting_position": "Position the child comfortably in standing on the floor or mat. The child must be able to stand, arms free, to attempt this item, although to obtain a score of 2, holding on to any equipment is acceptable once lowering to sitting has been initiated.",
+    "instructions": "To obtain a score of 3, the child must lower to sitting on the floor with control without using the arms on the floor or the body for assistance. “With control” implies that the movement is regulated or graded. To obtain a score of 2, the child must lower to sitting on the floor with control, but the arms may be used for balance or support on the floor or the body, or the child may hold on to any of the listed equipment (or a suitable substitute). To obtain a score of 1, the child must lower to sitting on the floor, but it does not have to be controlled (i.e., crashing). “Crash” is defined as “to fall, collapse,” but there must be obvious intent (versus accidentally falling to the floor)."
+  },
+  "63": {
+    "number": 63,
+    "title": "Standing: attains squat, arms free",
+    "scoring_criteria": {
+      "0": "does not initiate squat",
+      "1": "initiates squat",
+      "2": "attains squat, using arm(s) or holding on",
+      "3": "attains squat, arms free"
+    },
+    "starting_position": "Position the child comfortably in standing on the floor or mat. The child must be able to stand, arms free, to attempt this item, although to obtain a score of 2, holding on to any equipment is acceptable once squatting has been initiated.",
+    "instructions": "Instruct the child to lower to the squat position. To obtain a score of 3, the child must attain the squat position, arms free. (Review “arms free” in Explanation of Terms.) To obtain a score of 2, the child must also attain the squat position but the arms may be used on the body or floor for balance or support, or the child may hold on to any of the listed equipment (or a suitable substitute). To obtain a score of 1, the child must initiate squat using any of the above strategies."
+  },
+  "64": {
+    "number": 64,
+    "title": "Standing: picks up object from floor, arms free, returns to standing",
+    "scoring_criteria": {
+      "0": "does not initiate picking up object from floor",
+      "1": "initiates picking up object from floor",
+      "2": "picks up object from floor, using arm(s) or holding on",
+      "3": "picks up object from floor, arms free, returns to standing"
+    },
+    "starting_position": "Position the child comfortably in standing on the floor or mat. Children must be able to stand, arms free, to attempt this item, although for a score of 1 or 2 they may hold on to any equipment once they initiate picking up the object. Place a small toy on the floor in front of the child.",
+    "instructions": "To obtain a score of 3, the child must pick up the toy from the floor and regain standing without using the arm(s) for support or balance on the floor, the body or any equipment. To obtain a score of 2, the child must also pick up the toy from the floor and regain standing but the arm(s) may be used for support or balance on the body or floor, or the child may hold on to any of the listed equipment (or a substitute). To obtain a score of 1, the child must initiate picking up the toy from the floor using any of the above strategies."
+  },
+  "46": {
+    "number": 46,
+    "title": "4 Point: crawls up 4 steps on hands and knees/feet",
+    "scoring_criteria": {
+      "0": "does not initiate crawling up steps",
+      "1": "crawls up 1 step on hands and knees/feet",
+      "2": "crawls up 2 to 3 steps on hands and knees/feet",
+      "3": "crawls up 4 steps on hands and knees/feet"
+    },
+    "starting_position": "Position the child comfortably in 4 point on the floor in front of a set of a minimum of four to six steps that are standard sized (i.e., approximately 7 inch rise). If children prefer, they may begin in standing.",
+    "instructions": "Instruct the child to crawl up the steps. A young child may require demonstration or further prompting with the use of toys. The therapist should be behind the child to reduce the possibility of injury from falling. Any variation of creeping or crawling is acceptable for this item as long as the child is moving forward up the steps, one step at a time (i.e., moving up the steps backward in sitting is not acceptable). Both arms and legs must reach the fourth step to achieve a score of 3. Some children will stop when their hands reach the fourth step; the use of a set of six steps could ensure that both arms and legs will reach the required distance."
   }
 }
