@@ -447,20 +447,39 @@ class SessionDetailView(ft.View):
     def _export_pdf(self, e):
         if not self.session or not self.student:
             return
-        import os
-        docs_folder = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
+        import os, sys, subprocess
+        
+        # Determine save folder (Android uses Flet storage, desktop uses Documents)
+        flet_storage = os.getenv("FLET_APP_STORAGE_DATA")
+        if flet_storage:
+            docs_folder = Path(flet_storage) / "GMFM_Reports"
+        else:
+            docs_folder = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
         docs_folder.mkdir(parents=True, exist_ok=True)
-        filename = f"GMFM_{self.student.given_name}_{self.student.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}.pdf"
-        output_path = docs_folder / filename
+        
+        filename = f"GMFM_{self.student.given_name}_{self.student.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}"
         try:
-            generate_report(patient=self.student, session=self.session, scoring_result=self.results, output_path=output_path)
-            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"PDF saved!"), bgcolor=SUCCESS, duration=5000)
+            result_path = generate_report(student=self.student, session=self.session, scoring_result=self.results, output_path=docs_folder / (filename + ".pdf"))
+            saved_name = result_path.name
+            self._page_ref.snack_bar = ft.SnackBar(
+                ft.Text(f"Saved: {saved_name}"),
+                bgcolor=SUCCESS, duration=5000,
+            )
             self._page_ref.snack_bar.open = True
             self._page_ref.update()
-            import subprocess
-            subprocess.Popen(f'explorer "{docs_folder}"')
+            
+            # Open the folder in file manager (cross-platform)
+            try:
+                if sys.platform == "win32":
+                    os.startfile(str(docs_folder))
+                elif sys.platform == "darwin":
+                    subprocess.Popen(["open", str(docs_folder)])
+                else:
+                    subprocess.Popen(["xdg-open", str(docs_folder)])
+            except Exception:
+                pass
         except Exception as ex:
-            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Error: {str(ex)}"), bgcolor=ERROR)
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Export error: {str(ex)}"), bgcolor=ERROR)
             self._page_ref.snack_bar.open = True
             self._page_ref.update()
 

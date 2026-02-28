@@ -5,7 +5,12 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from cryptography.fernet import Fernet
+try:
+    from cryptography.fernet import Fernet
+    CRYPTO_AVAILABLE = True
+except Exception:
+    Fernet = None
+    CRYPTO_AVAILABLE = False
 try:
     import keyring  # type: ignore
 except ImportError:  # pragma: no cover
@@ -25,6 +30,10 @@ class SecurityProvider:
     """Loads/stores encryption keys and exposes helper methods."""
 
     def __init__(self) -> None:
+        if not CRYPTO_AVAILABLE:
+            self._key = None
+            self._fernet = None
+            return
         self._key = self._load_key()
         self._fernet = Fernet(self._key)
 
@@ -67,14 +76,14 @@ class SecurityProvider:
             print("WARNING: Could not persist encryption key.")
 
     def encrypt(self, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return None
+        if value is None or self._fernet is None:
+            return value
         token = self._fernet.encrypt(value.encode("utf-8"))
         return token.decode("utf-8")
 
     def decrypt(self, value: Optional[str]) -> Optional[str]:
-        if value is None:
-            return None
+        if value is None or self._fernet is None:
+            return value
         try:
             plain = self._fernet.decrypt(value.encode("utf-8"))
             return plain.decode("utf-8")
