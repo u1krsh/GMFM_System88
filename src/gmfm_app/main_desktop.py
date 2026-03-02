@@ -1,5 +1,5 @@
 """
-GMFM Pro - Desktop Edition
+MotorMeasure - Desktop Edition
 """
 import sys
 from pathlib import Path
@@ -29,7 +29,7 @@ class Theme:
 class GMFMApp:
     def __init__(self, page: ft.Page):
         self.page = page
-        self.page.title = "GMFM Pro"
+        self.page.title = "MotorMeasure"
         
         # Desktop settings
         self.page.theme_mode = ft.ThemeMode.LIGHT

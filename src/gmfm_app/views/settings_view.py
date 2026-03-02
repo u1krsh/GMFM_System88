@@ -69,7 +69,7 @@ class SettingsView(ft.View):
             [
                 self._info_row("Version", "1.0.0"),
                 self._info_row("GMFM Scale", "GMFM-88"),
-                self._info_row("Developer", "GMFM Pro Team"),
+                self._info_row("Developer", "MotorMeasure Team"),
             ]
         )
 

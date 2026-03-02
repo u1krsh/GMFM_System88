@@ -1,5 +1,5 @@
 """
-GMFM Pro - Mobile Optimized (Android/iOS)
+MotorMeasure - GMFM Assessment App
 Main application module — imported by src/main.py
 """
 import sys
@@ -33,7 +33,7 @@ def _make_error_view(route: str, error_msg: str, stack_trace: str = "") -> ft.Vi
         route=route,
         bgcolor="#FEE2E2",
         scroll=ft.ScrollMode.AUTO,
-        padding=0,s
+        padding=0,
         controls=[
             ft.SafeArea(
                 content=ft.Container(
@@ -72,7 +72,7 @@ def show_error_page(page: ft.Page, error_msg: str, stack_trace: str = ""):
                 ft.SafeArea(
                     ft.Container(
                         ft.Column([
-                            ft.Text("GMFM Pro Error", size=20, weight=ft.FontWeight.BOLD),
+                            ft.Text("MotorMeasure Error", size=20, weight=ft.FontWeight.BOLD),
                             ft.Text(str(error_msg), size=13),
                         ]),
                         padding=30,
@@ -122,7 +122,7 @@ class GMFMApp:
     def __init__(self, page: ft.Page):
         _log("GMFMApp.__init__ starting")
         self.page = page
-        self.page.title = "GMFM Pro"
+        self.page.title = "MotorMeasure"
         self._navigating_back = False
         self._nav_lock = False  # Prevent concurrent navigation
         
