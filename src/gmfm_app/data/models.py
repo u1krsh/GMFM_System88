@@ -26,6 +26,30 @@ try:
 except Exception:
     from dataclasses import dataclass, field
 
+    def _parse_datetime(val):
+        """Coerce ISO‑string → datetime (SQLite returns strings)."""
+        if isinstance(val, datetime):
+            return val
+        if isinstance(val, str):
+            try:
+                return datetime.fromisoformat(val)
+            except (ValueError, TypeError):
+                return datetime.utcnow()
+        return val if val is not None else datetime.utcnow()
+
+    def _parse_date(val):
+        """Coerce ISO‑string → date."""
+        if isinstance(val, date) and not isinstance(val, datetime):
+            return val
+        if isinstance(val, datetime):
+            return val.date()
+        if isinstance(val, str):
+            try:
+                return date.fromisoformat(val)
+            except (ValueError, TypeError):
+                return None
+        return None
+
     @dataclass
     class Student:
         given_name: str = ""
@@ -34,6 +58,11 @@ except Exception:
         dob: Optional[date] = None
         identifier: Optional[str] = None
         created_at: datetime = field(default_factory=datetime.utcnow)
+
+        def __post_init__(self):
+            self.created_at = _parse_datetime(self.created_at)
+            if self.dob is not None:
+                self.dob = _parse_date(self.dob)
 
     @dataclass
     class Session:
@@ -44,3 +73,9 @@ except Exception:
         total_score: Optional[float] = None
         notes: Optional[str] = None
         created_at: datetime = field(default_factory=datetime.utcnow)
+
+        def __post_init__(self):
+            self.created_at = _parse_datetime(self.created_at)
+            # Ensure raw_scores keys are ints (json.loads returns string keys)
+            if self.raw_scores and isinstance(self.raw_scores, dict):
+                self.raw_scores = {int(k): int(v) for k, v in self.raw_scores.items()}

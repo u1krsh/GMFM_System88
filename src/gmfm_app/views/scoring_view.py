@@ -534,31 +534,43 @@ class ScoringView(ft.View):
         self._update_progress()
 
     def _save(self, e):
-        self.timer_running = False
-        elapsed = int(time.time() - self.start_time)
-        mins, secs = divmod(elapsed, 60)
-        
-        # Success haptic for Nothing Phone 2a
-        success(self._page_ref)
-        
-        result = calculate_gmfm_scores(self.scores, scale=self.scale)
-        total = result["total_percent"]
+        try:
+            self.timer_running = False
+            elapsed = int(time.time() - self.start_time)
+            mins, secs = divmod(elapsed, 60)
 
-        notes = self.notes_field.value or ""
-        if elapsed > 0:
-            notes = f"[Duration: {mins}m {secs}s] {notes}"
+            # Success haptic for Nothing Phone 2a
+            success(self._page_ref)
 
-        if self.session_id:
-            # Update existing session
-            existing = self.session_repo.get_session(self.session_id)
-            if existing:
-                existing.raw_scores = self.scores
-                existing.total_score = total
-                existing.notes = notes.strip() if notes.strip() else existing.notes
-                self.session_repo.update_session(existing)
-                self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Updated! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
+            result = calculate_gmfm_scores(self.scores, scale=self.scale)
+            total = result["total_percent"]
+
+            notes = self.notes_field.value or ""
+            if elapsed > 0:
+                notes = f"[Duration: {mins}m {secs}s] {notes}"
+
+            if self.session_id:
+                # Update existing session
+                existing = self.session_repo.get_session(self.session_id)
+                if existing:
+                    existing.raw_scores = self.scores
+                    existing.total_score = total
+                    existing.notes = notes.strip() if notes.strip() else existing.notes
+                    self.session_repo.update_session(existing)
+                    self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Updated! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
+                else:
+                    # Session not found, create new
+                    session = Session(
+                        student_id=self.student_id,
+                        scale=self.scale,
+                        raw_scores=self.scores,
+                        total_score=total,
+                        notes=notes.strip() if notes.strip() else None
+                    )
+                    self.session_repo.create_session(session)
+                    self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
             else:
-                # Session not found, create new
+                # Create new session
                 session = Session(
                     student_id=self.student_id,
                     scale=self.scale,
@@ -568,18 +580,14 @@ class ScoringView(ft.View):
                 )
                 self.session_repo.create_session(session)
                 self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
-        else:
-            # Create new session
-            session = Session(
-                student_id=self.student_id,
-                scale=self.scale,
-                raw_scores=self.scores,
-                total_score=total,
-                notes=notes.strip() if notes.strip() else None
-            )
-            self.session_repo.create_session(session)
-            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"✅ Saved! Total: {total:.1f}% ({mins}:{secs:02d})"), bgcolor=SUCCESS)
 
-        self._page_ref.snack_bar.open = True
-        self._page_ref.update()
-        self._page_ref.go(f"/history?student_id={self.student_id}")
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
+            self._page_ref.go(f"/history?student_id={self.student_id}")
+        except Exception as ex:
+            import traceback
+            self._page_ref.snack_bar = ft.SnackBar(
+                ft.Text(f"Save error: {ex}", selectable=True), bgcolor=ERROR, duration=8000,
+            )
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
