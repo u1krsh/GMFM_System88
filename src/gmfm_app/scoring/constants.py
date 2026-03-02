@@ -3,14 +3,12 @@
 from gmfm_app.scoring.items_catalog import build_item_number_map
 
 # Lazy-load to avoid crashing the entire import chain if data file is missing
-_gmfm66 = None
 _gmfm88 = None
 
 
 def _ensure_loaded():
-    global _gmfm66, _gmfm88
-    if _gmfm66 is None:
-        _gmfm66 = build_item_number_map("66")
+    global _gmfm88
+    if _gmfm88 is None:
         _gmfm88 = build_item_number_map("88")
 
 
@@ -50,7 +48,6 @@ class _LazyItems:
         return len(self._load())
 
 
-GMFM66_ITEMS = _LazyItems("66")
 GMFM88_ITEMS = _LazyItems("88")
 
 # Maximum score per item (0-3 per manual)

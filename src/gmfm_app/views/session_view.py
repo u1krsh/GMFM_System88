@@ -161,69 +161,8 @@ class SessionHistoryView(ft.View):
         self._page_ref.update()
 
     def _show_scale_dialog(self):
-        """Show GMFM-66/88 scale selection dialog."""
-        c = self.c
-        
-        def select_scale(scale):
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
-            self._page_ref.go(f"/scoring?student_id={self.student_id}&scale={scale}")
-        
-        dlg = ft.AlertDialog(
-            title=ft.Text("Select Assessment Scale"),
-            content=ft.Column([
-                ft.Container(
-                    content=ft.Row([
-                        ft.Container(
-                            content=ft.Text("66", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                            width=50, height=50,
-                            bgcolor=PRIMARY,
-                            border_radius=12,
-                            alignment=ft.alignment.center,
-                        ),
-                        ft.Container(width=12),
-                        ft.Column([
-                            ft.Text("GMFM-66", size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                            ft.Text("66 items (subset)", size=12, color=c["TEXT2"]),
-                        ], expand=True),
-                    ]),
-                    padding=16,
-                    bgcolor=c["CARD"],
-                    border_radius=12,
-                    border=ft.border.all(1, c["BORDER"]),
-                    on_click=lambda _: select_scale("66"),
-                    ink=True,
-                ),
-                ft.Container(height=10),
-                ft.Container(
-                    content=ft.Row([
-                        ft.Container(
-                            content=ft.Text("88", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                            width=50, height=50,
-                            bgcolor=SUCCESS,
-                            border_radius=12,
-                            alignment=ft.alignment.center,
-                        ),
-                        ft.Container(width=12),
-                        ft.Column([
-                            ft.Text("GMFM-88", size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                            ft.Text("88 items (complete)", size=12, color=c["TEXT2"]),
-                        ], expand=True),
-                    ]),
-                    padding=16,
-                    bgcolor=c["CARD"],
-                    border_radius=12,
-                    border=ft.border.all(1, c["BORDER"]),
-                    on_click=lambda _: select_scale("88"),
-                    ink=True,
-                ),
-            ], tight=True),
-        )
-        self._page_ref.overlay.append(dlg)
-        dlg.open = True
-        self._page_ref.update()
+        """Start a new GMFM-88 assessment directly."""
+        self._page_ref.go(f"/scoring?student_id={self.student_id}&scale=88")
     def _build_progress_chart(self, sessions):
         c = self.c
         sorted_sessions = sorted(sessions, key=lambda s: s.created_at)
@@ -459,41 +398,113 @@ class SessionDetailView(ft.View):
     def _export_pdf(self, e):
         if not self.session or not self.student:
             return
-        import os, sys, subprocess
-        
-        # Determine save folder (Android uses Flet storage, desktop uses Documents)
+        import os, sys
+
+        c = self.c
         flet_storage = os.getenv("FLET_APP_STORAGE_DATA")
-        if flet_storage:
-            docs_folder = Path(flet_storage) / "GMFM_Reports"
-        else:
-            docs_folder = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
-        docs_folder.mkdir(parents=True, exist_ok=True)
-        
-        filename = f"GMFM_{self.student.given_name}_{self.student.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}"
+        is_android = bool(flet_storage)
+
         try:
-            result_path = generate_report(student=self.student, session=self.session, scoring_result=self.results, output_path=docs_folder / (filename + ".pdf"))
+            # Determine save folder
+            if is_android:
+                docs_folder = Path(flet_storage) / "GMFM_Reports"
+            else:
+                docs_folder = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
+            docs_folder.mkdir(parents=True, exist_ok=True)
+
+            filename = f"GMFM_{self.student.given_name}_{self.student.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}"
+
+            result_path = generate_report(
+                student=self.student,
+                session=self.session,
+                scoring_result=self.results,
+                output_path=docs_folder / (filename + ".pdf"),
+            )
+
             saved_name = result_path.name
+            saved_full = str(result_path)
+
+            # Show snackbar notification
             self._page_ref.snack_bar = ft.SnackBar(
-                ft.Text(f"Saved: {saved_name}"),
-                bgcolor=SUCCESS, duration=5000,
+                ft.Row([
+                    ft.Icon("check_circle", color="white", size=20),
+                    ft.Container(width=6),
+                    ft.Text(f"Opening: {saved_name}", color="white", expand=True,
+                            no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS),
+                ]),
+                bgcolor=SUCCESS, duration=4000,
             )
             self._page_ref.snack_bar.open = True
             self._page_ref.update()
-            
-            # Open the folder in file manager (cross-platform)
+
+            # Open the PDF immediately
             try:
-                if sys.platform == "win32":
-                    os.startfile(str(docs_folder))
+                if is_android:
+                    self._open_pdf_android(saved_full)
+                elif sys.platform == "win32":
+                    os.startfile(saved_full)
                 elif sys.platform == "darwin":
-                    subprocess.Popen(["open", str(docs_folder)])
+                    import subprocess
+                    subprocess.Popen(["open", saved_full])
                 else:
-                    subprocess.Popen(["xdg-open", str(docs_folder)])
+                    import subprocess
+                    subprocess.Popen(["xdg-open", saved_full])
             except Exception:
-                pass
+                pass  # snackbar already shows location
+
         except Exception as ex:
-            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Export error: {str(ex)}"), bgcolor=ERROR)
+            self._page_ref.snack_bar = ft.SnackBar(
+                ft.Text(f"Export error: {ex}", selectable=True, color="white"),
+                bgcolor=ERROR, duration=8000,
+            )
             self._page_ref.snack_bar.open = True
             self._page_ref.update()
+
+    def _open_pdf_android(self, file_path: str):
+        """Serve the PDF via a local HTTP server and open it in the browser.
+
+        Android blocks file:// URIs between apps, so we spin up a tiny
+        HTTP server on localhost, hand the browser an http:// URL, and
+        auto-shutdown after 2 minutes.
+        """
+        import threading
+        import http.server
+        import socketserver
+        import os
+        import time
+        from urllib.parse import quote
+
+        directory = os.path.dirname(file_path)
+        filename = os.path.basename(file_path)
+
+        class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=directory, **kwargs)
+
+            def log_message(self, fmt, *args):
+                pass  # Suppress console noise
+
+        server = socketserver.TCPServer(("127.0.0.1", 0), _QuietHandler)
+        port = server.server_address[1]
+
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        # Small delay so the server is ready before the browser connects
+        time.sleep(0.15)
+
+        encoded_name = quote(filename)
+        self._page_ref.launch_url(f"http://127.0.0.1:{port}/{encoded_name}")
+
+        # Auto-shutdown after 2 minutes
+        def _shutdown():
+            try:
+                server.shutdown()
+                server.server_close()
+            except Exception:
+                pass
+
+        threading.Timer(120, _shutdown).start()
 
 
 class CompareView(ft.View):

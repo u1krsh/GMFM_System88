@@ -1,19 +1,13 @@
-"""GMFM scoring engine (MVP).
-Provides functions to calculate domain percentages and total percentage for both GMFM-66 and GMFM-88.
+"""GMFM-88 scoring engine.
+Calculates domain percentages and total percentage for GMFM-88.
 Input: raw_scores -> dict[int, int] mapping item_id to score (0..3)
 Output: dict with per-domain percent (0-100) and total_percent
-
-NOTE: This implementation uses a simplified percentage-based calculation for GMFM-66.
-True GMFM-66 scoring requires the Gross Motor Ability Estimator (GMAE) algorithm,
-which uses Rasch analysis to convert ordinal scores to an interval scale.
-The results provided here for GMFM-66 are approximations based on raw score percentages
-and should be interpreted with caution. For clinical validity, use GMAE software.
 """
 from __future__ import annotations
 
 from typing import Dict, Iterable, Tuple
 
-from gmfm_app.scoring.constants import GMFM66_ITEMS, GMFM88_ITEMS, MAX_ITEM_SCORE
+from gmfm_app.scoring.constants import GMFM88_ITEMS, MAX_ITEM_SCORE
 
 
 def _score_domain(item_ids: Iterable[int], raw_scores: Dict[int, int]) -> Tuple[float, int]:
@@ -36,19 +30,19 @@ def _score_domain(item_ids: Iterable[int], raw_scores: Dict[int, int]) -> Tuple[
     return percent, count
 
 
-def calculate_gmfm_scores(raw_scores: Dict[int, int], scale: str = "66") -> Dict[str, object]:
-    """Calculate domain percentages and total for GMFM-66 or GMFM-88.
+def calculate_gmfm_scores(raw_scores: Dict[int, int], scale: str = "88") -> Dict[str, object]:
+    """Calculate domain percentages and total for GMFM-88.
 
     Returns:
       {
-        "scale": "66",
+        "scale": "88",
         "domains": {domain_name: {"percent": float, "n_items": int}},
         "total_percent": float,
         "items_scored": int,
         "items_total": int,
       }
     """
-    items_map = GMFM66_ITEMS if scale == "66" else GMFM88_ITEMS
+    items_map = GMFM88_ITEMS
 
     domains: Dict[str, Dict[str, object]] = {}
     total_score = 0.0
@@ -77,10 +71,6 @@ def calculate_gmfm_scores(raw_scores: Dict[int, int], scale: str = "66") -> Dict
     }
 
 
-# convenience wrappers
-def calculate_gmfm66(raw_scores: Dict[int, int]) -> Dict[str, object]:
-    return calculate_gmfm_scores(raw_scores, scale="66")
-
-
+# convenience wrapper
 def calculate_gmfm88(raw_scores: Dict[int, int]) -> Dict[str, object]:
     return calculate_gmfm_scores(raw_scores, scale="88")

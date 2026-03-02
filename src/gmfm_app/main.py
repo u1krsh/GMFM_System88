@@ -33,7 +33,7 @@ def _make_error_view(route: str, error_msg: str, stack_trace: str = "") -> ft.Vi
         route=route,
         bgcolor="#FEE2E2",
         scroll=ft.ScrollMode.AUTO,
-        padding=0,
+        padding=0,s
         controls=[
             ft.SafeArea(
                 content=ft.Container(

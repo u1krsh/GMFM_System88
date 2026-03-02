@@ -42,7 +42,7 @@ class ScoringView(ft.View):
         self.db_context = db_context
         self.student_id = student_id
         self.session_id = session_id
-        self.scale = scale  # "66" or "88"
+        self.scale = "88"  # Always GMFM-88
         self.student_repo = StudentRepository(db_context)
         self.session_repo = SessionRepository(db_context)
         self.scores = {}

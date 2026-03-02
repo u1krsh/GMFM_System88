@@ -15,7 +15,7 @@ except ImportError:
     plt = None
 
 from gmfm_app.data.models import Session
-from gmfm_app.scoring.engine import calculate_gmfm66, calculate_gmfm88
+from gmfm_app.scoring.engine import calculate_gmfm88
 
 
 def render_total_score_trend(sessions: Sequence[Session]) -> bytes:
@@ -59,11 +59,7 @@ def render_score_dashboard(sessions: Sequence[Session]) -> bytes:
     all_domains = set()
     session_results = []
     for session in sessions_sorted:
-        result = (
-            calculate_gmfm66(session.raw_scores)
-            if session.scale == "66"
-            else calculate_gmfm88(session.raw_scores)
-        )
+        result = calculate_gmfm88(session.raw_scores)
         session_results.append(result)
         all_domains.update(result["domains"].keys())
 

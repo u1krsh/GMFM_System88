@@ -100,31 +100,28 @@ def _load_raw() -> Dict[str, Dict[str, object]]:
 
 
 def get_domains(scale: str = "88") -> List[GMFMDomain]:
-    scale_key = "66" if scale == "66" else "88"
+    """Return all GMFM-88 domains and items."""
     data = _load_raw()
     domains: List[GMFMDomain] = []
     for letter in sorted(data.keys()):
         payload = data[letter]
         raw_items: Iterable[Dict[str, object]] = payload.get("items", [])  # type: ignore[assignment]
-        filtered: List[GMFMItem] = []
+        items: List[GMFMItem] = []
         for item in raw_items:
-            flag = bool(item.get("gmfm66"))
-            if scale_key == "66" and not flag:
-                continue
-            filtered.append(
+            items.append(
                 GMFMItem(
                     number=int(item["number"]),
                     description=str(item["description"]),
-                    gmfm66=flag,
+                    gmfm66=bool(item.get("gmfm66")),
                 )
             )
-        if not filtered:
+        if not items:
             continue
         domains.append(
             GMFMDomain(
                 dimension=str(payload.get("dimension", letter)),
                 title=str(payload.get("title", "")),
-                items=tuple(filtered),
+                items=tuple(items),
             )
         )
     return domains

@@ -207,7 +207,7 @@ def import_assessment_to_db(
     Args:
         assessment: Parsed assessment data
         db_context: Database context for connections
-        scale: GMFM scale ("66" or "88")
+        scale: GMFM scale ("88")
         
     Returns:
         Tuple of (student_id, session_id)

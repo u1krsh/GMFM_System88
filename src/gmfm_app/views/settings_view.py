@@ -68,7 +68,7 @@ class SettingsView(ft.View):
             "About",
             [
                 self._info_row("Version", "1.0.0"),
-                self._info_row("GMFM Scale", "GMFM-88 / GMFM-66"),
+                self._info_row("GMFM Scale", "GMFM-88"),
                 self._info_row("Developer", "GMFM Pro Team"),
             ]
         )
