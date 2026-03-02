@@ -6,21 +6,28 @@ from gmfm_app.data.database import DatabaseContext, db_context
 from gmfm_app.services.haptics import tap, success, warning
 
 
-# Light Theme
-BG = "#F8FAFC"
-CARD = "#FFFFFF"
 PRIMARY = "#0D9488"
-TEXT1 = "#1E293B"
-TEXT2 = "#64748B"
-TEXT3 = "#94A3B8"
-BORDER = "#E2E8F0"
 SUCCESS = "#10B981"
 ERROR = "#EF4444"
 
 
+def _colors(is_dark):
+    if is_dark:
+        return {
+            "BG": "#0F172A", "CARD": "#1E293B", "BORDER": "#334155",
+            "TEXT1": "#F8FAFC", "TEXT2": "#94A3B8", "TEXT3": "#64748B",
+        }
+    return {
+        "BG": "#F8FAFC", "CARD": "#FFFFFF", "BORDER": "#E2E8F0",
+        "TEXT1": "#1E293B", "TEXT2": "#64748B", "TEXT3": "#94A3B8",
+    }
+
+
 class SettingsView(ft.View):
     def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False):
-        super().__init__(route="/settings", padding=0, bgcolor=BG)
+        c = _colors(is_dark)
+        self._c = c
+        super().__init__(route="/settings", padding=0, bgcolor=c["BG"])
         self._page_ref = page
         self.db_context = db_context
 
@@ -28,12 +35,12 @@ class SettingsView(ft.View):
         header = ft.SafeArea(
             content=ft.Container(
                 content=ft.Row([
-                    ft.IconButton("arrow_back", icon_color=TEXT1, on_click=lambda _: self._page_ref.go("/")),
-                    ft.Text("Settings", size=20, weight=ft.FontWeight.BOLD, color=TEXT1),
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self._page_ref.go("/")),
+                    ft.Text("Settings", size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                 ]),
                 padding=ft.padding.symmetric(horizontal=10, vertical=10),
-                bgcolor=CARD,
-                border=ft.border.only(bottom=ft.BorderSide(1, BORDER)),
+                bgcolor=c["CARD"],
+                border=ft.border.only(bottom=ft.BorderSide(1, c["BORDER"])),
             ),
             minimum_padding=ft.padding.only(top=5),
             bottom=False,
@@ -83,25 +90,27 @@ class SettingsView(ft.View):
         ]
 
     def _settings_card(self, title, rows):
+        c = self._c
         return ft.Container(
             content=ft.Column([
-                ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=TEXT1),
+                ft.Text(title, size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                 ft.Container(height=10),
                 *rows,
             ]),
             padding=20,
-            bgcolor=CARD,
+            bgcolor=c["CARD"],
             border_radius=16,
-            border=ft.border.all(1, BORDER),
+            border=ft.border.all(1, c["BORDER"]),
             margin=ft.margin.only(bottom=15),
         )
 
     def _setting_row(self, title, subtitle, control):
+        c = self._c
         return ft.Container(
             content=ft.Row([
                 ft.Column([
-                    ft.Text(title, size=14, weight=ft.FontWeight.W_500, color=TEXT1),
-                    ft.Text(subtitle, size=12, color=TEXT3),
+                    ft.Text(title, size=14, weight=ft.FontWeight.W_500, color=c["TEXT1"]),
+                    ft.Text(subtitle, size=12, color=c["TEXT3"]),
                 ], spacing=2, expand=True),
                 control,
             ]),
@@ -109,6 +118,7 @@ class SettingsView(ft.View):
         )
 
     def _action_row(self, title, subtitle, icon, on_click, danger=False):
+        c = self._c
         color = ERROR if danger else PRIMARY
         return ft.Container(
             content=ft.Row([
@@ -121,10 +131,10 @@ class SettingsView(ft.View):
                 ),
                 ft.Container(width=12),
                 ft.Column([
-                    ft.Text(title, size=14, weight=ft.FontWeight.W_500, color=color if danger else TEXT1),
-                    ft.Text(subtitle, size=12, color=TEXT3),
+                    ft.Text(title, size=14, weight=ft.FontWeight.W_500, color=color if danger else c["TEXT1"]),
+                    ft.Text(subtitle, size=12, color=c["TEXT3"]),
                 ], spacing=2, expand=True),
-                ft.Icon("chevron_right", color=TEXT3),
+                ft.Icon("chevron_right", color=c["TEXT3"]),
             ]),
             padding=ft.padding.symmetric(vertical=10),
             on_click=on_click,
@@ -132,10 +142,11 @@ class SettingsView(ft.View):
         )
 
     def _info_row(self, label, value):
+        c = self._c
         return ft.Container(
             content=ft.Row([
-                ft.Text(label, size=14, color=TEXT2, expand=True),
-                ft.Text(value, size=14, weight=ft.FontWeight.W_500, color=TEXT1),
+                ft.Text(label, size=14, color=c["TEXT2"], expand=True),
+                ft.Text(value, size=14, weight=ft.FontWeight.W_500, color=c["TEXT1"]),
             ]),
             padding=ft.padding.symmetric(vertical=8),
         )
@@ -148,6 +159,8 @@ class SettingsView(ft.View):
         else:
             self._page_ref.theme_mode = ft.ThemeMode.LIGHT
             self._page_ref.bgcolor = "#F8FAFC"
+        # Persist preference
+        self._page_ref.client_storage.set("dark_mode", self.dark_mode.value)
         self._page_ref.update()
 
     def _export_data(self, e):

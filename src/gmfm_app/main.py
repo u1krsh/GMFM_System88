@@ -2,6 +2,10 @@
 MotorMeasure - GMFM Assessment App
 Main application module — imported by src/main.py
 """
+"""flet build apk --verbose"""
+
+"""adb install -r D:\PROGRAM\COMPRO\GMFM\GMFM_System88\src\build\flutter\build\app\outputs\flutter-apk\app-release.apk"""
+
 import sys
 import os
 import traceback
@@ -126,16 +130,24 @@ class GMFMApp:
         self._navigating_back = False
         self._nav_lock = False  # Prevent concurrent navigation
         
-        # Mobile optimizations
-        self.page.theme_mode = ft.ThemeMode.LIGHT
-        self.page.bgcolor = Theme.LIGHT_BG
+        # Mobile optimizations — restore saved theme preference
+        try:
+            saved_dark = self.page.client_storage.get("dark_mode")
+        except Exception:
+            saved_dark = False
+        if saved_dark:
+            self.page.theme_mode = ft.ThemeMode.DARK
+            self.page.bgcolor = Theme.DARK_BG
+        else:
+            self.page.theme_mode = ft.ThemeMode.LIGHT
+            self.page.bgcolor = Theme.LIGHT_BG
         self.page.padding = 0
         
-        # Set dark status bar icons for light theme (makes icons visible)
+        # Set status bar theme
         self.page.theme = ft.Theme(
             color_scheme=ft.ColorScheme(
                 primary=Theme.PRIMARY,
-                surface=Theme.LIGHT_BG,
+                surface=Theme.DARK_BG if saved_dark else Theme.LIGHT_BG,
             ),
         )
         
@@ -224,7 +236,7 @@ class GMFMApp:
                 pid = self._param_from_route(route, "id")
                 return StudentView(self.page, self.db_context, is_dark, int(pid) if pid else None)
             elif route == "/settings":
-                return SettingsView(self.page, self.db_context)
+                return SettingsView(self.page, self.db_context, is_dark)
             elif route.startswith("/scoring"):
                 pid = self._param_from_route(route, "student_id")
                 sid = self._param_from_route(route, "session_id")
