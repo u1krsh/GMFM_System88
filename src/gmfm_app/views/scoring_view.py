@@ -231,7 +231,7 @@ class ScoringView(ft.View):
 
     def _show_celebration(self):
         # Strong haptic celebration for Nothing Phone 2a
-        heavy(self.page)
+        heavy(self._page_ref)
         
         self._page_ref.snack_bar = ft.SnackBar(
             ft.Row([
@@ -513,7 +513,7 @@ class ScoringView(ft.View):
         c = self.c
         
         # Haptic feedback - crisp selection click for Nothing Phone 2a
-        select(self.page)
+        select(self._page_ref)
         
         if value == "NT":
             self.scores.pop(item_id, None)
@@ -539,7 +539,7 @@ class ScoringView(ft.View):
         mins, secs = divmod(elapsed, 60)
         
         # Success haptic for Nothing Phone 2a
-        success(self.page)
+        success(self._page_ref)
         
         result = calculate_gmfm_scores(self.scores, scale=self.scale)
         total = result["total_percent"]

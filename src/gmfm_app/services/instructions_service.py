@@ -21,25 +21,41 @@ class ExerciseInstruction:
 
 def _find_data_path() -> Path:
     """Find the instructions_data.json file, handling both dev and Android bundled scenarios."""
-    # Try same directory as this file (normal case)
-    local_path = Path(__file__).with_name("instructions_data.json")
-    if local_path.exists():
-        return local_path
+    candidates = []
     
-    # Try current working directory (Android bundled case)
-    cwd_path = Path.cwd() / "gmfm_app" / "services" / "instructions_data.json"
-    if cwd_path.exists():
-        return cwd_path
+    # 1. Same directory as this file (normal case)
+    try:
+        candidates.append(Path(__file__).with_name("instructions_data.json"))
+    except Exception:
+        pass
     
-    # Try relative to FLET_APP_STORAGE_DATA (Android app storage)
+    # 2. Current working directory (Android bundled case)
+    try:
+        candidates.append(Path.cwd() / "gmfm_app" / "services" / "instructions_data.json")
+    except Exception:
+        pass
+    
+    # 3. Relative to FLET_APP_STORAGE_DATA (Android app storage)
     storage = os.getenv("FLET_APP_STORAGE_DATA")
     if storage:
-        storage_path = Path(storage).parent / "gmfm_app" / "services" / "instructions_data.json"
-        if storage_path.exists():
-            return storage_path
+        candidates.append(Path(storage).parent / "gmfm_app" / "services" / "instructions_data.json")
+        candidates.append(Path(storage) / "gmfm_app" / "services" / "instructions_data.json")
     
-    # Fallback to local path
-    return local_path
+    # 4. Search sys.path (covers serious_python extraction directory)
+    import sys
+    for sp in sys.path:
+        if sp:
+            candidates.append(Path(sp) / "gmfm_app" / "services" / "instructions_data.json")
+    
+    for c in candidates:
+        try:
+            if c.exists():
+                return c
+        except Exception:
+            continue
+    
+    # Fallback to first candidate
+    return candidates[0] if candidates else Path("instructions_data.json")
 
 
 @lru_cache(maxsize=1)

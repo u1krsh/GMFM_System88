@@ -10,28 +10,63 @@ from typing import Dict, Iterable, List, Sequence
 
 def _find_data_path() -> Path:
     """Find the items_data.json file, handling both dev and bundled scenarios."""
-    # Try relative to this file first (normal case)
-    local_path = Path(__file__).with_name("items_data.json")
-    if local_path.exists():
-        return local_path
+    candidates = []
     
-    # Try current working directory (Android bundled case)
-    cwd_path = Path.cwd() / "gmfm_app" / "scoring" / "items_data.json"
-    if cwd_path.exists():
-        return cwd_path
+    # 1. Relative to this file (normal case)
+    try:
+        local_path = Path(__file__).with_name("items_data.json")
+        candidates.append(local_path)
+    except Exception:
+        pass
     
-    # Try relative to FLET_APP_STORAGE_DATA
+    # 2. Current working directory (Android bundled case)
+    try:
+        candidates.append(Path.cwd() / "gmfm_app" / "scoring" / "items_data.json")
+    except Exception:
+        pass
+    
+    # 3. Relative to FLET_APP_STORAGE_DATA
     storage = os.getenv("FLET_APP_STORAGE_DATA")
     if storage:
-        storage_path = Path(storage).parent / "gmfm_app" / "scoring" / "items_data.json"
-        if storage_path.exists():
-            return storage_path
+        candidates.append(Path(storage).parent / "gmfm_app" / "scoring" / "items_data.json")
+        candidates.append(Path(storage) / "gmfm_app" / "scoring" / "items_data.json")
     
-    # Fallback to local path (will raise error if missing)
-    return local_path
+    # 4. Search sys.path (covers serious_python extraction directory)
+    import sys
+    for sp in sys.path:
+        if sp:
+            candidates.append(Path(sp) / "gmfm_app" / "scoring" / "items_data.json")
+    
+    # 5. Walk up from __file__ to find it
+    try:
+        p = Path(__file__).resolve().parent
+        for _ in range(5):
+            candidate = p / "gmfm_app" / "scoring" / "items_data.json"
+            candidates.append(candidate)
+            p = p.parent
+    except Exception:
+        pass
+    
+    for c in candidates:
+        try:
+            if c.exists():
+                return c
+        except Exception:
+            continue
+    
+    # Fallback to first candidate (will raise error if missing)
+    return candidates[0] if candidates else Path("items_data.json")
 
 
-DATA_PATH = _find_data_path()
+def _safe_find_data_path() -> Path:
+    """Safe wrapper that never raises during module load."""
+    try:
+        return _find_data_path()
+    except Exception:
+        return Path("items_data.json")
+
+
+DATA_PATH = _safe_find_data_path()
 
 
 @dataclass(frozen=True)

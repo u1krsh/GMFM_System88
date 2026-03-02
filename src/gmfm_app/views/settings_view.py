@@ -141,7 +141,7 @@ class SettingsView(ft.View):
         )
 
     def _toggle_theme(self, e):
-        tap(self.page)  # Haptic feedback on toggle
+        tap(self._page_ref)  # Haptic feedback on toggle
         if self.dark_mode.value:
             self._page_ref.theme_mode = ft.ThemeMode.DARK
             self._page_ref.bgcolor = "#1A1A2E"
@@ -151,7 +151,7 @@ class SettingsView(ft.View):
         self._page_ref.update()
 
     def _export_data(self, e):
-        success(self.page)  # Haptic feedback
+        success(self._page_ref)  # Haptic feedback
         import json
         from pathlib import Path
         from gmfm_app.data.repositories import StudentRepository, SessionRepository
@@ -182,8 +182,18 @@ class SettingsView(ft.View):
                 })
         
         import os
-        export_path = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports" / "gmfm_export.json"
-        export_path.parent.mkdir(parents=True, exist_ok=True)
+        import sys
+        # Use Android-safe path
+        flet_storage = os.getenv("FLET_APP_STORAGE_DATA")
+        if flet_storage:
+            export_dir = Path(flet_storage) / "GMFM_Reports"
+        else:
+            try:
+                export_dir = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
+            except Exception:
+                export_dir = Path(".") / "GMFM_Reports"
+        export_dir.mkdir(parents=True, exist_ok=True)
+        export_path = export_dir / "gmfm_export.json"
         export_path.write_text(json.dumps(export, indent=2))
         
         self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Data exported to {export_path}"), bgcolor=SUCCESS)
@@ -192,7 +202,7 @@ class SettingsView(ft.View):
 
     def _export_csv(self, e):
         """Export data as CSV for Excel/Sheets."""
-        success(self.page)  # Haptic feedback
+        success(self._page_ref)  # Haptic feedback
         import csv
         from pathlib import Path
         from gmfm_app.data.repositories import StudentRepository, SessionRepository
@@ -203,7 +213,16 @@ class SettingsView(ft.View):
         students = student_repo.list_students(limit=1000)
         
         import os
-        export_dir = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
+        import sys
+        # Use Android-safe path
+        flet_storage = os.getenv("FLET_APP_STORAGE_DATA")
+        if flet_storage:
+            export_dir = Path(flet_storage) / "GMFM_Reports"
+        else:
+            try:
+                export_dir = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
+            except Exception:
+                export_dir = Path(".") / "GMFM_Reports"
         export_dir.mkdir(parents=True, exist_ok=True)
         
         # Export students CSV
@@ -228,18 +247,23 @@ class SettingsView(ft.View):
                         sess.created_at.strftime("%Y-%m-%d %H:%M")
                     ])
         
-        self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"CSV files saved to Documents/GMFM_Reports!"), bgcolor=SUCCESS)
+        self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"CSV files saved to {export_dir}!"), bgcolor=SUCCESS)
         self._page_ref.snack_bar.open = True
         self._page_ref.update()
         
-        import subprocess
-        subprocess.Popen(f'explorer "{export_dir}"')
+        # Only open explorer on desktop
+        if sys.platform == "win32":
+            try:
+                import subprocess
+                subprocess.Popen(f'explorer "{export_dir}"')
+            except Exception:
+                pass
 
     def _clear_data(self, e):
 
-        warning(self.page)  # Warning haptic for dangerous action
+        warning(self._page_ref)  # Warning haptic for dangerous action
         def confirm_clear(e):
-            warning(self.page)  # Another warning haptic on confirm
+            warning(self._page_ref)  # Another warning haptic on confirm
             from gmfm_app.data.database import resolve_db_path
             import os
             db_path = resolve_db_path()
