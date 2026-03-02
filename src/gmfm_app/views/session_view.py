@@ -93,13 +93,14 @@ class SessionHistoryView(ft.View):
                 self.list.controls.append(self._build_progress_chart(sessions))
             
             for s in sessions:
-                color = SUCCESS if s.total_score >= 70 else WARNING if s.total_score >= 40 else ERROR
+                score = s.total_score if s.total_score is not None else 0
+                color = SUCCESS if score >= 70 else WARNING if score >= 40 else ERROR
                 
                 self.list.controls.append(
                     ft.Container(
                         content=ft.Row([
                             ft.Container(
-                                content=ft.Text(f"{s.total_score:.0f}%", size=16, weight=ft.FontWeight.BOLD, color="white"),
+                                content=ft.Text(f"{score:.0f}%", size=16, weight=ft.FontWeight.BOLD, color="white"),
                                 width=55, height=55,
                                 bgcolor=color,
                                 border_radius=14,
@@ -136,11 +137,15 @@ class SessionHistoryView(ft.View):
         def do_delete(e):
             self.repo.delete_session(session_id)
             dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
             self._page_ref.update()
             self._page_ref.go(f"/history?student_id={self.student_id}")
         
         def cancel(e):
             dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
             self._page_ref.update()
         
         dlg = ft.AlertDialog(
@@ -161,6 +166,8 @@ class SessionHistoryView(ft.View):
         
         def select_scale(scale):
             dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
             self._page_ref.update()
             self._page_ref.go(f"/scoring?student_id={self.student_id}&scale={scale}")
         
@@ -223,7 +230,8 @@ class SessionHistoryView(ft.View):
         
         bars = []
         for i, s in enumerate(sorted_sessions[-8:]):
-            height = max(4, (s.total_score / 100) * 80)
+            score = s.total_score if s.total_score is not None else 0
+            height = max(4, (score / 100) * 80)
             is_latest = i == len(sorted_sessions[-8:]) - 1
             color = PRIMARY if is_latest else f"{PRIMARY}60"
             
@@ -238,7 +246,9 @@ class SessionHistoryView(ft.View):
             )
         
         if len(sorted_sessions) >= 2:
-            diff = sorted_sessions[-1].total_score - sorted_sessions[0].total_score
+            s_last = sorted_sessions[-1].total_score or 0
+            s_first = sorted_sessions[0].total_score or 0
+            diff = s_last - s_first
             trend_icon = "trending_up" if diff > 0 else "trending_down" if diff < 0 else "trending_flat"
             trend_color = SUCCESS if diff > 0 else ERROR if diff < 0 else c["TEXT2"]
             trend_text = f"+{diff:.0f}%" if diff > 0 else f"{diff:.0f}%"
@@ -434,6 +444,8 @@ class SessionDetailView(ft.View):
         
         def select_session(e, sid):
             dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
             self._page_ref.update()
             self._page_ref.go(f"/compare?session1={self.session_id}&session2={sid}")
         

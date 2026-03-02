@@ -124,6 +124,7 @@ class GMFMApp:
         self.page = page
         self.page.title = "GMFM Pro"
         self._navigating_back = False
+        self._nav_lock = False  # Prevent concurrent navigation
         
         # Mobile optimizations
         self.page.theme_mode = ft.ThemeMode.LIGHT
@@ -175,24 +176,30 @@ class GMFMApp:
             prev_route = self.route_history[-1] if self.route_history else "/"
             self._navigating_back = True
             self.page.go(prev_route)
-            self._navigating_back = False
             return True
         else:
-            self._navigating_back = True  
+            self._navigating_back = True
             self.page.go("/")
-            self._navigating_back = False
             return True
 
     def route_change(self, route):
+        # Prevent concurrent navigation (fixes "back too fast = blank screen")
+        if self._nav_lock:
+            return
+        self._nav_lock = True
         try:
-            # Track history (avoid duplicates and skip when navigating back)
-            if not getattr(self, '_navigating_back', False):
+            is_back = self._navigating_back
+            self._navigating_back = False  # Reset AFTER reading it
+
+            if not is_back:
+                # Forward navigation — track history
                 if not self.route_history or self.route_history[-1] != self.page.route:
                     self.route_history.append(self.page.route)
-            # Keep history manageable
-            if len(self.route_history) > 20:
-                self.route_history = self.route_history[-10:]
-            self._handle_route()
+                # Keep history manageable
+                if len(self.route_history) > 20:
+                    self.route_history = self.route_history[-10:]
+
+            self._handle_route(is_back)
         except Exception as e:
             # Use views-based error display (not page.controls)
             try:
@@ -203,6 +210,8 @@ class GMFMApp:
                 self.page.update()
             except Exception:
                 show_error_page(self.page, f"Navigation error: {e}", traceback.format_exc())
+        finally:
+            self._nav_lock = False
 
     def _create_view(self, route: str):
         """Create a view for the given route. Never raises — returns error view on failure."""
@@ -246,25 +255,33 @@ class GMFMApp:
         except:
             return None
 
-    def _handle_route(self):
-        """Build the view stack based on route history."""
+    def _handle_route(self, is_back=False):
+        """Build/update the view stack efficiently."""
         try:
-            if self._navigating_back:
-                self.page.views.clear()
-                for route in self.route_history:
-                    view = self._create_view(route)
+            current_route = self.page.route or "/"
+            
+            if is_back:
+                # Back navigation — just pop the top view, don't rebuild
+                if len(self.page.views) > 1:
+                    self.page.views.pop()
+                else:
+                    # Stack is empty or single — rebuild the target view
+                    view = self._create_view(current_route)
                     if view:
+                        self.page.views.clear()
                         self.page.views.append(view)
             else:
-                # Forward navigation — rebuild from history
-                new_views = []
-                for route in self.route_history:
-                    v = self._create_view(route)
-                    if v:
-                        new_views.append(v)
-                if new_views:
-                    self.page.views.clear()
-                    self.page.views.extend(new_views)
+                # Forward navigation — only create the NEW view and append
+                if not self.page.views:
+                    # First load — create the initial view
+                    view = self._create_view(current_route)
+                    if view:
+                        self.page.views.append(view)
+                else:
+                    # Append new view on top of existing stack
+                    view = self._create_view(current_route)
+                    if view:
+                        self.page.views.append(view)
         except Exception as e:
             # Ensure at least an error view is visible
             self.page.views.clear()
@@ -285,21 +302,32 @@ class GMFMApp:
         # If only one view (home), let app close
         if len(self.page.views) <= 1:
             return
-        
-        # Pop the top view
-        self.page.views.pop()
-        
-        # Update route history
-        if len(self.route_history) > 1:
-            self.route_history.pop()
-        
-        # Update the route to match top view
-        if self.page.views:
-            top_view = self.page.views[-1]
-            # Update route without triggering route_change
-            self.page.route = top_view.route
-        
-        self.page.update()
+
+        # Prevent concurrent navigation
+        if self._nav_lock:
+            return
+        self._nav_lock = True
+
+        try:
+            # Pop the top view
+            self.page.views.pop()
+
+            # Update route history
+            if len(self.route_history) > 1:
+                self.route_history.pop()
+
+            # Clean up stale overlays to prevent memory leaks
+            self.page.overlay.clear()
+
+            # Update the route to match top view
+            if self.page.views:
+                top_view = self.page.views[-1]
+                # Update route without triggering route_change
+                self.page.route = top_view.route
+
+            self.page.update()
+        finally:
+            self._nav_lock = False
 
     def _param(self, key):
         try:

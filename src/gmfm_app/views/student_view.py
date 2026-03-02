@@ -161,6 +161,8 @@ class StudentView(ft.View):
             # Delete student
             self.repo.delete_student(self.student_id)
             dlg.open = False
+            if dlg in self.page.overlay:
+                self.page.overlay.remove(dlg)
             self.page.update()
             self.page.snack_bar = ft.SnackBar(ft.Text("Student deleted"), bgcolor=WARNING)
             self.page.snack_bar.open = True
@@ -168,6 +170,8 @@ class StudentView(ft.View):
         
         def cancel(e):
             dlg.open = False
+            if dlg in self.page.overlay:
+                self.page.overlay.remove(dlg)
             self.page.update()
         
         dlg = ft.AlertDialog(

@@ -108,9 +108,15 @@ def init_db(path: Path) -> None:
         conn.commit()
 
 
+_db_initialized: set = set()  # Track which DB paths have been initialized
+
+
 def get_connection(path: Path | None = None) -> sqlite3.Connection:
     resolved = resolve_db_path(str(path) if path else None)
-    init_db(resolved)
+    resolved_str = str(resolved)
+    if resolved_str not in _db_initialized:
+        init_db(resolved)
+        _db_initialized.add(resolved_str)
     conn = sqlite3.connect(resolved)
     conn.row_factory = sqlite3.Row
     return conn

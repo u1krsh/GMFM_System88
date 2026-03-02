@@ -150,6 +150,62 @@ class SessionRepository(BaseRepository):
             cur = conn.cursor()
             cur.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
 
+    def get_recent_sessions(self, limit: int = 3) -> List[dict]:
+        """Get recent sessions across all students with student info in one query."""
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT s.id, s.student_id, s.scale, s.raw_scores, s.total_score,
+                       s.notes, s.created_at, st.given_name, st.family_name
+                FROM sessions s
+                JOIN students st ON s.student_id = st.id
+                ORDER BY s.created_at DESC
+                LIMIT ?
+                """,
+                (limit,),
+            )
+            rows = cur.fetchall()
+            results = []
+            for r in rows:
+                data = dict(r)
+                given = data.pop("given_name", "")
+                family = data.pop("family_name", "")
+                data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
+                sess = Session(**data)
+                results.append({"session": sess, "given_name": given, "family_name": family})
+            return results
+
+    def get_dashboard_stats(self) -> dict:
+        """Get aggregate stats in a single query: total sessions, average score."""
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) as cnt, AVG(total_score) as avg_score FROM sessions")
+            row = cur.fetchone()
+            return {"total_sessions": row["cnt"] or 0, "avg_score": row["avg_score"] or 0}
+
+    def get_latest_session_per_student(self) -> dict:
+        """Get latest session for every student in one query. Returns {student_id: Session}."""
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute(
+                """
+                SELECT s.* FROM sessions s
+                INNER JOIN (
+                    SELECT student_id, MAX(created_at) as max_date
+                    FROM sessions GROUP BY student_id
+                ) latest ON s.student_id = latest.student_id AND s.created_at = latest.max_date
+                """
+            )
+            rows = cur.fetchall()
+            result = {}
+            for r in rows:
+                data = dict(r)
+                data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
+                sess = Session(**data)
+                result[sess.student_id] = sess
+            return result
+
     def update_session(self, session: Session) -> Session:
         """Update an existing session's scores and notes."""
         if session.id is None:

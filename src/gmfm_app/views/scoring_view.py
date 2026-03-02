@@ -171,7 +171,7 @@ class ScoringView(ft.View):
         thread.start()
 
     def _bulk_score(self, value):
-        domains = get_domains("88")
+        domains = get_domains(self.scale)
         for domain in domains:
             for item in domain.items:
                 self.scores[item.number] = value
@@ -468,6 +468,8 @@ class ScoringView(ft.View):
         
         def close_dialog(e):
             dialog.open = False
+            if dialog in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dialog)
             self._page_ref.update()
         
         dialog = ft.AlertDialog(
