@@ -2,12 +2,14 @@
 MotorMeasure - GMFM Assessment App
 Main application module — imported by src/main.py
 """
-"""flet build apk --verbose"""
+"""flet build apk --product MotorMeasure --project MotorMeasure --org com.motormeasure --verbose"""
 
-"""adb install -r D:\PROGRAM\COMPRO\GMFM\GMFM_System88\src\build\flutter\build\app\outputs\flutter-apk\app-release.apk"""
+"""adb install -r D:\PROGRAM\COMPRO\GMFM\GMFM_System88\src\build\apk\app-release.apk"""
 
 import sys
 import os
+import base64
+import threading
 import traceback
 from pathlib import Path
 
@@ -107,6 +109,12 @@ try:
     _log("  session_view OK")
     from gmfm_app.views.settings_view import SettingsView
     _log("  settings_view OK")
+    from gmfm_app.views.login_view import LoginView
+    _log("  login_view OK")
+    from gmfm_app.services.auth_service import AuthService
+    _log("  auth_service OK")
+    from gmfm_app.services.ui_scale import apply_android_scale
+    _log("  ui_scale OK")
     IMPORTS_OK = True
     _log("All imports successful")
 except Exception as e:
@@ -122,8 +130,84 @@ class Theme:
     PRIMARY = "#0D9488"
 
 
+def _load_image_b64(relative_path: str) -> str:
+    """Load an image from src/ directory as a base64 string. Tries multiple paths for Android compatibility."""
+    candidates = [
+        SRC_DIR / relative_path,
+        Path(os.getcwd()) / relative_path,
+        Path(__file__).resolve().parent / relative_path,
+        Path(__file__).resolve().parent.parent / relative_path,
+    ]
+    for img_path in candidates:
+        try:
+            if img_path.exists():
+                _log(f"Found image at: {img_path}")
+                return base64.b64encode(img_path.read_bytes()).decode("utf-8")
+        except Exception:
+            pass
+    _log(f"Failed to load image {relative_path} from any path")
+    return ""
+
+
+def _build_splash():
+    """Build the splash screen with animated logo slot + static app logo."""
+    # Use embedded base64 constants — file-based loading fails on Android
+    from gmfm_app.splash_assets import LOGO1_B64, LOGO2_B64, APP_IMG_B64
+    logo1_b64 = LOGO1_B64
+    logo2_b64 = LOGO2_B64
+    app_img_b64 = APP_IMG_B64
+
+    # Logo containers with fade animation — we'll swap visibility via opacity
+    logo1 = ft.Container(
+        content=ft.Image(src_base64=logo1_b64, width=110, height=110, fit=ft.ImageFit.CONTAIN)
+        if logo1_b64 else ft.Container(width=110, height=110),
+        opacity=1,
+        animate_opacity=ft.Animation(500, ft.AnimationCurve.EASE_IN_OUT),
+    )
+    logo2 = ft.Container(
+        content=ft.Image(src_base64=logo2_b64, width=110, height=110, fit=ft.ImageFit.CONTAIN)
+        if logo2_b64 else ft.Container(width=110, height=110),
+        opacity=0,
+        animate_opacity=ft.Animation(500, ft.AnimationCurve.EASE_IN_OUT),
+    )
+
+    # Stack both logos on top of each other so the swap looks clean
+    logo_slot = ft.Container(
+        content=ft.Stack([logo1, logo2]),
+        width=120, height=120,
+        alignment=ft.alignment.center,
+    )
+
+    splash = ft.Container(
+        content=ft.Column(
+            [
+                ft.Container(height=40),
+                logo_slot,
+                ft.Container(height=20),
+                ft.Image(src_base64=app_img_b64, width=160, height=160, fit=ft.ImageFit.CONTAIN)
+                if app_img_b64 else ft.Container(width=160, height=160),
+                ft.Container(height=20),
+                ft.Text("MotorMeasure", size=32, weight=ft.FontWeight.BOLD, color="#1E293B"),
+                ft.Text("GMFM Assessment System", size=14, color="#64748B"),
+                ft.Container(height=30),
+                ft.ProgressRing(color="#0D9488", width=30, height=30, stroke_width=3),
+                ft.Container(height=10),
+                ft.Text("Loading...", size=12, color="#94A3B8"),
+            ],
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        bgcolor="#FFFFFF",
+        expand=True,
+        alignment=ft.alignment.center,
+        animate_opacity=ft.Animation(600, ft.AnimationCurve.EASE_IN_OUT),
+    )
+
+    return splash, logo1, logo2
+
+
 class GMFMApp:
-    def __init__(self, page: ft.Page):
+    def __init__(self, page: ft.Page, db_context=None):
         _log("GMFMApp.__init__ starting")
         self.page = page
         self.page.title = "MotorMeasure"
@@ -161,11 +245,15 @@ class GMFMApp:
         # Navigation history for back button
         self.route_history = ["/"]
         
-        # Init database — wrap in try/except
+        # Init database — use pre-loaded context or create new one
         try:
-            _log("Initializing DatabaseContext...")
-            self.db_context = DatabaseContext()
-            _log("DatabaseContext ready")
+            if db_context is not None:
+                self.db_context = db_context
+                _log("Using pre-loaded DatabaseContext")
+            else:
+                _log("Initializing DatabaseContext...")
+                self.db_context = DatabaseContext()
+                _log("DatabaseContext ready")
         except Exception as e:
             _log(f"DatabaseContext FAILED: {e}")
             self.page.views.clear()
@@ -174,6 +262,8 @@ class GMFMApp:
             )
             self.page.update()
             return
+
+        self.auth_service = AuthService(self.db_context)
         
         _log("Navigating to /")
         self.page.go("/")
@@ -230,13 +320,16 @@ class GMFMApp:
         try:
             is_dark = self.page.theme_mode == ft.ThemeMode.DARK
             
-            if route == "/":
-                return DashboardView(self.page, self.db_context, is_dark)
+            if route.startswith("/login"):
+                return LoginView(self.page, self.auth_service, is_dark)
+            elif route == "/":
+                current_user = self.auth_service.current_user(self.page)
+                return DashboardView(self.page, self.db_context, is_dark, current_user=current_user)
             elif route.startswith("/student"):
                 pid = self._param_from_route(route, "id")
                 return StudentView(self.page, self.db_context, is_dark, int(pid) if pid else None)
             elif route == "/settings":
-                return SettingsView(self.page, self.db_context, is_dark)
+                return SettingsView(self.page, self.db_context, is_dark, auth_service=self.auth_service)
             elif route.startswith("/scoring"):
                 pid = self._param_from_route(route, "student_id")
                 sid = self._param_from_route(route, "session_id")
@@ -260,6 +353,16 @@ class GMFMApp:
         except Exception as e:
             return _make_error_view(route, f"View error ({route}): {e}", traceback.format_exc())
 
+    def _create_scaled_view(self, route: str):
+        """Create a route view and apply Android accessibility scale when needed."""
+        view = self._create_view(route)
+        if view is not None:
+            try:
+                apply_android_scale(self.page, view)
+            except Exception as e:
+                _log(f"Scaling failed for {route}: {e}")
+        return view
+
     def _param_from_route(self, route: str, key: str):
         """Extract a parameter from a route string."""
         try:
@@ -271,6 +374,27 @@ class GMFMApp:
         """Build/update the view stack efficiently."""
         try:
             current_route = self.page.route or "/"
+
+            # All routes are protected except /login.
+            is_public_route = current_route.startswith("/login")
+            is_authenticated = self.auth_service.is_authenticated(self.page)
+
+            if not is_authenticated and not is_public_route:
+                self.page.route = "/login"
+                self.route_history = ["/login"]
+                self.page.views.clear()
+                self.page.views.append(self._create_scaled_view("/login"))
+                self.page.update()
+                return
+
+            if is_authenticated and is_public_route:
+                self.page.route = "/"
+                current_route = "/"
+                self.route_history = ["/"]
+                self.page.views.clear()
+                self.page.views.append(self._create_scaled_view("/"))
+                self.page.update()
+                return
             
             if is_back:
                 # Back navigation — just pop the top view, don't rebuild
@@ -278,7 +402,7 @@ class GMFMApp:
                     self.page.views.pop()
                 else:
                     # Stack is empty or single — rebuild the target view
-                    view = self._create_view(current_route)
+                    view = self._create_scaled_view(current_route)
                     if view:
                         self.page.views.clear()
                         self.page.views.append(view)
@@ -286,12 +410,12 @@ class GMFMApp:
                 # Forward navigation — only create the NEW view and append
                 if not self.page.views:
                     # First load — create the initial view
-                    view = self._create_view(current_route)
+                    view = self._create_scaled_view(current_route)
                     if view:
                         self.page.views.append(view)
                 else:
                     # Append new view on top of existing stack
-                    view = self._create_view(current_route)
+                    view = self._create_scaled_view(current_route)
                     if view:
                         self.page.views.append(view)
         except Exception as e:
@@ -348,6 +472,11 @@ class GMFMApp:
             return None
 
 
+def _is_mobile() -> bool:
+    """Detect if running on Android/iOS (serious_python runtime)."""
+    return sys.platform not in ("win32", "darwin", "linux") or os.getenv("FLET_PLATFORM") in ("android", "ios")
+
+
 def main(page: ft.Page):
     """Entry point — called by src/main.py with the Flet page."""
     _log("gmfm_app.main.main() called")
@@ -359,8 +488,80 @@ def main(page: ft.Page):
         return
     
     try:
-        GMFMApp(page)
-        _log("GMFMApp initialized successfully")
+        if _is_mobile():
+            # On Android/iOS: src/main.py already shows the splash with logos.
+            # Just init DB and launch the app — splash stays visible until GMFMApp calls page.go("/").
+            _log("Mobile platform detected — init DB and launch")
+            try:
+                db_ctx = DatabaseContext()
+                _log("DatabaseContext ready")
+            except Exception as e:
+                show_error_page(page, f"Database init failed: {e}", traceback.format_exc())
+                return
+            GMFMApp(page, db_context=db_ctx)
+            _log("GMFMApp initialized successfully")
+        else:
+            # Desktop: show animated splash with logo sequence
+            page.bgcolor = "#FFFFFF"
+            page.padding = 0
+            splash, logo1, logo2 = _build_splash()
+            page.add(splash)
+            _log("Splash screen shown")
+
+            # Initialize database in background thread
+            db_result = [None, None]  # [context, error]
+
+            def _init_db():
+                try:
+                    db_result[0] = DatabaseContext()
+                    _log("Background: DatabaseContext ready")
+                except Exception as e:
+                    db_result[1] = (str(e), traceback.format_exc())
+
+            db_thread = threading.Thread(target=_init_db, daemon=True)
+            db_thread.start()
+
+            # Animate logo sequence then transition to app
+            def _animate_and_finish():
+                import time
+
+                # Logo 1 visible for 1.5s
+                time.sleep(1.5)
+
+                # Fade out logo 1, fade in logo 2
+                logo1.opacity = 0
+                logo2.opacity = 1
+                page.update()
+
+                # Logo 2 visible for 1.5s
+                time.sleep(1.5)
+
+                # Wait for DB init to complete
+                db_thread.join(timeout=15)
+
+                # Fade out entire splash
+                splash.opacity = 0
+                page.update()
+                time.sleep(0.7)
+
+                # Clear splash and launch app
+                page.controls.clear()
+                page.update()
+
+                if db_result[1]:
+                    show_error_page(page, f"Database init failed: {db_result[1][0]}", db_result[1][1])
+                    return
+
+                if db_result[0] is None:
+                    show_error_page(page, "Database initialization timed out")
+                    return
+
+                GMFMApp(page, db_context=db_result[0])
+                _log("GMFMApp initialized successfully")
+
+            # Start the animation sequence immediately in a background thread
+            threading.Thread(target=_animate_and_finish, daemon=True).start()
+
     except Exception as e:
         _log(f"GMFMApp init FAILED: {e}")
         _log(traceback.format_exc())
@@ -370,4 +571,4 @@ def main(page: ft.Page):
 # Only call ft.app() when running this file directly (desktop dev mode)
 # When imported by src/main.py (Android), main() is called with the page
 if __name__ == "__main__":
-    ft.app(target=main)
+    ft.app(target=main, assets_dir=str(SRC_DIR))

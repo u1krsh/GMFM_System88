@@ -23,6 +23,15 @@ try:
         notes: Optional[str] = None
         created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    class AppUser(BaseModel):
+        id: Optional[int] = None
+        username: constr(min_length=3)
+        password_hash: str
+        full_name: constr(min_length=1)
+        role: str = "clinician"
+        is_active: bool = True
+        created_at: datetime = Field(default_factory=datetime.utcnow)
+
 except Exception:
     from dataclasses import dataclass, field
 
@@ -79,3 +88,17 @@ except Exception:
             # Ensure raw_scores keys are ints (json.loads returns string keys)
             if self.raw_scores and isinstance(self.raw_scores, dict):
                 self.raw_scores = {int(k): int(v) for k, v in self.raw_scores.items()}
+
+    @dataclass
+    class AppUser:
+        username: str = ""
+        password_hash: str = ""
+        full_name: str = ""
+        id: Optional[int] = None
+        role: str = "clinician"
+        is_active: bool = True
+        created_at: datetime = field(default_factory=datetime.utcnow)
+
+        def __post_init__(self):
+            self.created_at = _parse_datetime(self.created_at)
+            self.is_active = bool(self.is_active)

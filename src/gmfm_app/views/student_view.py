@@ -181,6 +181,7 @@ class StudentView(ft.View):
                 ft.TextButton("Cancel", on_click=cancel),
                 ft.TextButton("Delete", style=ft.ButtonStyle(color=ERROR), on_click=do_delete),
             ],
+            on_dismiss=cancel,
         )
         self.page.overlay.append(dlg)
         dlg.open = True

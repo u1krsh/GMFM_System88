@@ -90,10 +90,33 @@ def init_db(path: Path) -> None:
             );
             """
         )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS app_users (
+                id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                full_name TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'clinician',
+                is_active INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+            );
+            """
+        )
         
         # Migration: Add notes column if it doesn't exist
         try:
             cursor.execute("ALTER TABLE sessions ADD COLUMN notes TEXT")
+        except sqlite3.OperationalError:
+            pass
+
+        # Migration: Add user metadata columns if missing
+        try:
+            cursor.execute("ALTER TABLE app_users ADD COLUMN role TEXT NOT NULL DEFAULT 'clinician'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            cursor.execute("ALTER TABLE app_users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1")
         except sqlite3.OperationalError:
             pass
             

@@ -24,12 +24,13 @@ def _colors(is_dark):
 
 
 class SettingsView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, auth_service=None):
         c = _colors(is_dark)
         self._c = c
         super().__init__(route="/settings", padding=0, bgcolor=c["BG"])
         self._page_ref = page
         self.db_context = db_context
+        self.auth_service = auth_service
 
         # Header
         header = ft.SafeArea(
@@ -70,20 +71,31 @@ class SettingsView(ft.View):
             ]
         )
 
+        account_rows = []
+        if self.auth_service is not None:
+            account_rows.append(
+                self._action_row("Sign Out", "Lock app and return to login", "logout", self._sign_out)
+            )
+
+        account_card = self._settings_card("Account", account_rows) if account_rows else None
+
         # About
         about_card = self._settings_card(
             "About",
             [
-                self._info_row("Version", "1.0.0"),
+                self._info_row("Version", "0.0.3"),
                 self._info_row("GMFM Scale", "GMFM-88"),
-                self._info_row("Developer", "MotorMeasure Team"),
+                self._info_row("Developer", "MotorMeasure Team (Sathyabama Institute of Science and Technology)"),
             ]
         )
 
         self.controls = [
             header,
             ft.Container(
-                content=ft.Column([theme_card, data_card, about_card], scroll=ft.ScrollMode.ADAPTIVE),
+                content=ft.Column(
+                    [x for x in [theme_card, data_card, account_card, about_card] if x is not None],
+                    scroll=ft.ScrollMode.ADAPTIVE,
+                ),
                 padding=20,
                 expand=True,
             )
@@ -145,9 +157,20 @@ class SettingsView(ft.View):
         c = self._c
         return ft.Container(
             content=ft.Row([
-                ft.Text(label, size=14, color=c["TEXT2"], expand=True),
-                ft.Text(value, size=14, weight=ft.FontWeight.W_500, color=c["TEXT1"]),
-            ]),
+                ft.Text(label, size=14, color=c["TEXT2"], expand=1),
+                ft.Container(
+                    content=ft.Text(
+                        value,
+                        size=14,
+                        weight=ft.FontWeight.W_500,
+                        color=c["TEXT1"],
+                        text_align=ft.TextAlign.RIGHT,
+                        no_wrap=False,
+                    ),
+                    expand=2,
+                    alignment=ft.alignment.top_right,
+                ),
+            ], vertical_alignment=ft.CrossAxisAlignment.START),
             padding=ft.padding.symmetric(vertical=8),
         )
 
@@ -283,6 +306,8 @@ class SettingsView(ft.View):
             if db_path.exists():
                 os.remove(db_path)
             dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
             self._page_ref.update()
             self._page_ref.snack_bar = ft.SnackBar(ft.Text("All data cleared"), bgcolor=SUCCESS)
             self._page_ref.snack_bar.open = True
@@ -290,6 +315,8 @@ class SettingsView(ft.View):
 
         def cancel(e):
             dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
             self._page_ref.update()
 
         dlg = ft.AlertDialog(
@@ -299,7 +326,14 @@ class SettingsView(ft.View):
                 ft.TextButton("Cancel", on_click=cancel),
                 ft.TextButton("Delete Everything", style=ft.ButtonStyle(color=ERROR), on_click=confirm_clear),
             ],
+            on_dismiss=cancel,
         )
         self._page_ref.overlay.append(dlg)
         dlg.open = True
         self._page_ref.update()
+
+    def _sign_out(self, e):
+        warning(self._page_ref)
+        if self.auth_service is not None:
+            self.auth_service.logout(self._page_ref)
+        self._page_ref.go("/login")

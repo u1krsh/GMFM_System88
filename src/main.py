@@ -21,6 +21,11 @@ _log(f"CWD: {os.getcwd()}")
 import flet as ft
 
 try:
+    from gmfm_app.services.ui_scale import apply_android_scale
+except Exception:
+    apply_android_scale = None
+
+try:
     flet_ver = ft.version.version if hasattr(ft.version, 'version') else ft.__version__
 except Exception:
     flet_ver = "unknown"
@@ -66,37 +71,135 @@ def _make_error_view(title, msg, trace=""):
     )
 
 
+def _build_splash_view():
+    """Build a splash View with stacked logos (for sequential fade animation).
+    Returns (view, logo1_container, logo2_container) or (None, None, None)."""
+    try:
+        from gmfm_app.splash_assets import LOGO1_B64, LOGO2_B64, APP_IMG_B64
+        _log("splash_assets imported OK")
+    except Exception as e:
+        _log(f"splash_assets import failed: {e}")
+        return None, None, None
+
+    # Two logo containers stacked on top of each other — we animate opacity to swap
+    logo1 = ft.Container(
+        content=ft.Image(src_base64=LOGO1_B64, width=110, height=110, fit=ft.ImageFit.CONTAIN)
+        if LOGO1_B64 else ft.Container(width=110, height=110),
+        opacity=1,
+        animate_opacity=ft.Animation(500, ft.AnimationCurve.EASE_IN_OUT),
+    )
+    logo2 = ft.Container(
+        content=ft.Image(src_base64=LOGO2_B64, width=110, height=110, fit=ft.ImageFit.CONTAIN)
+        if LOGO2_B64 else ft.Container(width=110, height=110),
+        opacity=0,
+        animate_opacity=ft.Animation(500, ft.AnimationCurve.EASE_IN_OUT),
+    )
+
+    # Stack logos so they overlap — only one visible at a time
+    logo_slot = ft.Container(
+        content=ft.Stack([logo1, logo2]),
+        width=120, height=120,
+        alignment=ft.alignment.center,
+    )
+
+    splash_col = ft.Column(
+        [
+            ft.Container(height=60),
+            logo_slot,
+            ft.Container(height=20),
+            ft.Image(src_base64=APP_IMG_B64, width=150, height=150, fit=ft.ImageFit.CONTAIN)
+            if APP_IMG_B64 else ft.Container(width=150, height=150),
+            ft.Container(height=20),
+            ft.Text("MotorMeasure", size=30, weight=ft.FontWeight.BOLD, color="#1E293B"),
+            ft.Text("GMFM Assessment System", size=14, color="#64748B"),
+            ft.Container(height=30),
+            ft.ProgressRing(color="#0D9488", width=30, height=30, stroke_width=3),
+            ft.Container(height=10),
+            ft.Text("Loading...", size=12, color="#94A3B8"),
+        ],
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        alignment=ft.MainAxisAlignment.CENTER,
+    )
+
+    view = ft.View(
+        route="/splash",
+        bgcolor="#FFFFFF",
+        padding=0,
+        vertical_alignment=ft.MainAxisAlignment.CENTER,
+        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        controls=[
+            ft.SafeArea(
+                content=ft.Container(
+                    content=splash_col,
+                    alignment=ft.alignment.center,
+                    expand=True,
+                ),
+                expand=True,
+            )
+        ],
+    )
+
+    return view, logo1, logo2
+
+
 def main(page: ft.Page):
+    import time
+
     _log("main(page) called")
 
-    # Show a loading screen immediately so the user sees something
-    page.title = "GMFM Pro"
-    page.bgcolor = "#F8FAFC"
+    page.title = "MotorMeasure"
+    page.bgcolor = "#FFFFFF"
     page.padding = 0
-    page.views.clear()
-    page.views.append(
-        ft.View(
-            route="/loading",
-            bgcolor="#F8FAFC",
-            vertical_alignment=ft.MainAxisAlignment.CENTER,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                ft.Column(
-                    [
-                        ft.ProgressRing(color="#0D9488"),
-                        ft.Container(height=20),
-                        ft.Text("Loading GMFM Pro...", size=16, color="#64748B"),
-                    ],
-                    horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                    alignment=ft.MainAxisAlignment.CENTER,
-                )
-            ],
-        )
-    )
-    page.update()
-    _log("Loading screen displayed")
 
-    # Now try to import and start the real app
+    # Step 1: Show splash with logo1 visible — before any heavy imports.
+    splash_view, logo1, logo2 = _build_splash_view()
+    if splash_view:
+        if apply_android_scale is not None:
+            try:
+                apply_android_scale(page, splash_view)
+            except Exception as e:
+                _log(f"Splash scaling failed: {e}")
+        page.views.clear()
+        page.views.append(splash_view)
+        page.update()
+        _log("Splash shown — logo1 visible")
+
+        # Step 2: Animate logo swap (time.sleep blocks Python only, Flutter UI stays responsive)
+        time.sleep(2.0)
+
+        # Fade out logo1, fade in logo2
+        logo1.opacity = 0
+        logo2.opacity = 1
+        page.update()
+        _log("Logo swap — logo2 visible")
+
+        time.sleep(2.0)
+    else:
+        # Fallback: plain loading screen if splash_assets fails
+        page.views.clear()
+        page.views.append(
+            ft.View(
+                route="/loading",
+                bgcolor="#FFFFFF",
+                vertical_alignment=ft.MainAxisAlignment.CENTER,
+                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.Column(
+                        [
+                            ft.ProgressRing(color="#0D9488"),
+                            ft.Container(height=20),
+                            ft.Text("Loading MotorMeasure...", size=16, color="#64748B"),
+                        ],
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        alignment=ft.MainAxisAlignment.CENTER,
+                    )
+                ],
+            )
+        )
+        page.update()
+        _log("Fallback loading screen displayed")
+
+    # Step 3: Now do the heavy imports — splash stays visible the whole time.
     try:
         _log("Importing gmfm_app.main ...")
         from gmfm_app.main import main as app_main

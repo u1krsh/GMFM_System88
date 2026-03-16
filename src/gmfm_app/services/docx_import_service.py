@@ -51,12 +51,12 @@ def _parse_name(name_text: str) -> Tuple[str, str]:
 
 
 def _parse_date(date_text: str) -> Optional[date]:
-    """Try to parse a date from various formats."""
+    """Try to parse a date from various formats, including month/year only."""
     date_text = date_text.strip()
     if not date_text:
         return None
     
-    # Common date formats
+    # Full date formats
     formats = [
         "%Y-%m-%d",
         "%d/%m/%Y",
@@ -66,11 +66,28 @@ def _parse_date(date_text: str) -> Optional[date]:
         "%b %d, %Y",
         "%d %B %Y",
         "%d %b %Y",
+        "%Y/%m/%d",
     ]
     
     for fmt in formats:
         try:
             return datetime.strptime(date_text, fmt).date()
+        except ValueError:
+            continue
+    
+    # Month/year only formats (default to 1st of month)
+    month_year_formats = [
+        "%B %Y",      # "October 2023"
+        "%b %Y",      # "Oct 2023"
+        "%m/%Y",      # "10/2023"
+        "%Y-%m",      # "2023-10"
+        "%Y/%m",      # "2023/10"
+        "%m-%Y",      # "10-2023"
+    ]
+    
+    for fmt in month_year_formats:
+        try:
+            return datetime.strptime(date_text, fmt).date().replace(day=1)
         except ValueError:
             continue
     
@@ -121,79 +138,116 @@ def _extract_paragraph_value(paragraph_text: str, prefix: str) -> str:
     return ""
 
 
-def parse_docx(file_path: str | Path) -> ImportedAssessment:
+def _iter_block_items(document):
+    """Yield Paragraph and Table objects in document order."""
+    from docx.table import Table as DocxTable
+    from docx.text.paragraph import Paragraph as DocxParagraph
+    from docx.oxml.ns import qn
+
+    for child in document.element.body.iterchildren():
+        if child.tag == qn('w:p'):
+            yield DocxParagraph(child, document)
+        elif child.tag == qn('w:tbl'):
+            yield DocxTable(child, document)
+
+
+def parse_docx(file_path: str | Path) -> list:
     """
-    Parse a GMFM assessment DOCX file.
-    
+    Parse a GMFM assessment DOCX file, extracting all sessions.
+
+    A single DOCX may contain multiple assessment sessions for the same
+    student (each with its own Assessment Date header).  This function
+    returns one ImportedAssessment per session found.
+
     Args:
         file_path: Path to the DOCX file
-        
+
     Returns:
-        ImportedAssessment with parsed data
-        
-    Raises:
-        FileNotFoundError: If file doesn't exist
-        ImportError: If python-docx is not installed
-        Exception: If file can't be parsed as DOCX
+        List of ImportedAssessment objects (one per session found)
     """
     # Lazy import to avoid error on Android
     try:
         from docx import Document
+        from docx.table import Table as DocxTable
+        from docx.text.paragraph import Paragraph as DocxParagraph
     except ImportError:
         raise ImportError("python-docx is required for DOCX import. This feature is not available on mobile.")
-    
+
     file_path = Path(file_path)
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {file_path}")
-    
+
     document = Document(file_path)
-    result = ImportedAssessment()
-    
-    # Parse paragraphs for student info
-    for para in document.paragraphs:
-        text = para.text.strip()
-        if not text:
-            continue
-        
-        # Check for various fields
-        if "name" in text.lower() and "evaluator" not in text.lower():
-            value = _extract_paragraph_value(text, "Name")
-            if value:
-                result.student_name = value
-                result.given_name, result.family_name = _parse_name(value)
-        
-        elif "assessment date" in text.lower() or "date" in text.lower()[:10]:
-            value = _extract_paragraph_value(text, "Assessment Date")
-            if not value:
-                value = _extract_paragraph_value(text, "Date")
-            if value:
-                result.assessment_date = _parse_date(value)
-        
-        elif "evaluator" in text.lower():
-            # Handle "Evaluator's name:" format first (longer match)
-            value = _extract_paragraph_value(text, "Evaluator's name")
-            if not value:
-                value = _extract_paragraph_value(text, "Evaluator")
-            
-            if value:
-                result.evaluator_name = value
-    
-    # Parse tables for scores
-    for table in document.tables:
-        for row in table.rows:
-            cells = row.cells
-            if len(cells) >= 3:
-                item_num = _extract_item_number(cells[0].text)
-                score = _parse_score(cells[2].text)
-                
-                if item_num is not None and score is not None:
-                    result.raw_scores[item_num] = score
-    
-    # Add evaluator to notes if present
-    if result.evaluator_name:
-        result.notes = f"Evaluator: {result.evaluator_name}"
-    
-    return result
+
+    assessments: list = []
+    current = ImportedAssessment()
+    last_name = ""
+    last_evaluator = ""
+
+    def _finalize(assessment: ImportedAssessment):
+        """Add notes and append to results if valid."""
+        if not assessment.student_name and last_name:
+            assessment.student_name = last_name
+            assessment.given_name, assessment.family_name = _parse_name(last_name)
+        if assessment.evaluator_name and not assessment.notes:
+            assessment.notes = f"Evaluator: {assessment.evaluator_name}"
+        if assessment.is_valid or assessment.raw_scores:
+            assessments.append(assessment)
+
+    for item in _iter_block_items(document):
+        if isinstance(item, DocxParagraph):
+            text = item.text.strip()
+            if not text:
+                continue
+
+            # Detect student name
+            if "name" in text.lower() and "evaluator" not in text.lower():
+                value = _extract_paragraph_value(text, "Name")
+                if value:
+                    last_name = value
+                    if not current.raw_scores:
+                        current.student_name = value
+                        current.given_name, current.family_name = _parse_name(value)
+
+            # Detect assessment date — a new date after scores signals a new session
+            elif "assessment date" in text.lower() or "date" in text.lower()[:10]:
+                value = _extract_paragraph_value(text, "Assessment Date")
+                if not value:
+                    value = _extract_paragraph_value(text, "Date")
+                if value:
+                    parsed_date = _parse_date(value)
+                    if parsed_date is not None:
+                        if current.raw_scores:
+                            # Finalise previous session, start a new one
+                            _finalize(current)
+                            current = ImportedAssessment()
+                            current.student_name = last_name
+                            current.given_name, current.family_name = _parse_name(last_name)
+                            current.evaluator_name = last_evaluator
+                        current.assessment_date = parsed_date
+
+            # Detect evaluator
+            elif "evaluator" in text.lower():
+                value = _extract_paragraph_value(text, "Evaluator's name")
+                if not value:
+                    value = _extract_paragraph_value(text, "Evaluator")
+                if value:
+                    last_evaluator = value
+                    current.evaluator_name = value
+
+        elif isinstance(item, DocxTable):
+            for row in item.rows:
+                cells = row.cells
+                if len(cells) >= 3:
+                    item_num = _extract_item_number(cells[0].text)
+                    score = _parse_score(cells[2].text)
+                    if item_num is not None and score is not None:
+                        current.raw_scores[item_num] = score
+
+    # Finalise the last (or only) session
+    _finalize(current)
+
+    return assessments if assessments else [ImportedAssessment()]
 
 
 def import_assessment_to_db(
@@ -246,12 +300,21 @@ def import_assessment_to_db(
         else:
             total = 0.0
         
+        # Use assessment date for created_at when available
+        if assessment.assessment_date:
+            created = datetime(
+                assessment.assessment_date.year,
+                assessment.assessment_date.month,
+                assessment.assessment_date.day,
+            ).isoformat()
+        else:
+            created = datetime.utcnow().isoformat()
+        
         # Create session
-        now = datetime.utcnow().isoformat()
         cursor.execute(
             """INSERT INTO sessions (student_id, scale, raw_scores, total_score, notes, created_at)
                VALUES (?, ?, ?, ?, ?, ?)""",
-            (student_id, scale, json.dumps(assessment.raw_scores), total, assessment.notes, now)
+            (student_id, scale, json.dumps(assessment.raw_scores), total, assessment.notes, created)
         )
         session_id = cursor.lastrowid
         

@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime, date
 
 from gmfm_app.data.database import DatabaseContext
-from gmfm_app.data.models import Student, Session
+from gmfm_app.data.models import Student, Session, AppUser
 
 
 class BaseRepository:
@@ -222,3 +222,54 @@ class SessionRepository(BaseRepository):
                 ),
             )
             return session
+
+
+class UserRepository(BaseRepository):
+    def count_users(self) -> int:
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute("SELECT COUNT(*) AS cnt FROM app_users")
+            row = cur.fetchone()
+            return int(row["cnt"] or 0)
+
+    def get_by_username(self, username: str) -> Optional[AppUser]:
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM app_users WHERE username = ?", (username.strip().lower(),))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            data = dict(row)
+            data["is_active"] = bool(data.get("is_active", 1))
+            return AppUser(**data)
+
+    def get_by_id(self, user_id: int) -> Optional[AppUser]:
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute("SELECT * FROM app_users WHERE id = ?", (user_id,))
+            row = cur.fetchone()
+            if row is None:
+                return None
+            data = dict(row)
+            data["is_active"] = bool(data.get("is_active", 1))
+            return AppUser(**data)
+
+    def create_user(self, user: AppUser) -> AppUser:
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute(
+                """
+                INSERT INTO app_users (username, password_hash, full_name, role, is_active, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    user.username.strip().lower(),
+                    user.password_hash,
+                    user.full_name,
+                    user.role,
+                    1 if user.is_active else 0,
+                    user.created_at.isoformat(),
+                ),
+            )
+            user.id = cur.lastrowid
+            return user

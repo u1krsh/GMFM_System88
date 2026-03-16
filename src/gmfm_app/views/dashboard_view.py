@@ -29,19 +29,23 @@ ERROR = "#EF4444"
 INFO = "#3B82F6"
 
 
-def get_greeting():
-    """Return a time-appropriate greeting."""
+def get_greeting(display_name: str | None = None):
+    """Return a time-appropriate greeting, optionally personalized."""
     hour = datetime.now().hour
     if hour < 12:
-        return "Good Morning! ☀️"
+        base = "Good Morning"
     elif hour < 17:
-        return "Good Afternoon! 👋"
+        base = "Good Afternoon"
     else:
-        return "Good Evening! 🌙"
+        base = "Good Evening"
+
+    if display_name:
+        return f"{base}, {display_name}!"
+    return f"{base}!"
 
 
 class DashboardView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, current_user=None):
         c = get_colors(is_dark)
         super().__init__(route="/", padding=0, bgcolor=c["BG"], scroll=ft.ScrollMode.AUTO)
         self._page_ref = page
@@ -50,6 +54,12 @@ class DashboardView(ft.View):
         self.session_repo = SessionRepository(db_context)
         self.c = c
         self.search_term = ""  # For search highlighting
+
+        display_name = None
+        if current_user is not None:
+            full_name = (getattr(current_user, "full_name", "") or "").strip()
+            username = (getattr(current_user, "username", "") or "").strip()
+            display_name = full_name.split(" ")[0] if full_name else username
 
         # Header with search
         self.search = ft.TextField(
@@ -78,7 +88,7 @@ class DashboardView(ft.View):
                 content=ft.Column([
                     ft.Row([
                         ft.Container(
-                            content=ft.Text("G", size=22, weight=ft.FontWeight.BOLD, color="white"),
+                            content=ft.Text("M", size=22, weight=ft.FontWeight.BOLD, color="white"),
                             width=46, height=46,
                             bgcolor=PRIMARY,
                             border_radius=12,
@@ -86,8 +96,8 @@ class DashboardView(ft.View):
                         ),
                         ft.Container(width=10),
                         ft.Column([
-                            ft.Text(get_greeting(), size=14, color=c["TEXT2"]),
-                            ft.Text("GMFM Pro", size=22, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                            ft.Text(get_greeting(display_name), size=14, color=c["TEXT2"]),
+                            ft.Text("MotorMeasure", size=22, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                         ], spacing=0, expand=True),
                         ft.IconButton("settings", icon_color=c["TEXT2"], on_click=lambda _: self._page_ref.go("/settings")),
                     ]),
@@ -162,34 +172,30 @@ class DashboardView(ft.View):
         ]
 
         self.load_students()
-        self._load_recent_activity()
 
     def _load_recent_activity(self):
-        """Load last 3 sessions across all students."""
+        """Load last 3 sessions across all students — single SQL query."""
         c = self.c
-        all_sessions = []
-        for s in self.all_students:
-            sessions = self.session_repo.list_sessions_for_student(s.id)
-            for sess in sessions:
-                all_sessions.append((s, sess))
-        
-        # Sort by date, most recent first
-        all_sessions.sort(key=lambda x: x[1].created_at, reverse=True)
+        recent = self.session_repo.get_recent_sessions(limit=3)
         
         self.recent_list.controls.clear()
         
-        if not all_sessions:
+        if not recent:
             self.recent_list.controls.append(
                 ft.Text("No recent activity", size=13, color=c["TEXT3"])
             )
         else:
-            for st, sess in all_sessions[:3]:
-                color = SUCCESS if sess.total_score >= 70 else WARNING if sess.total_score >= 40 else ERROR
+            for item in recent:
+                sess = item["session"]
+                given = item["given_name"] or ""
+                family = item["family_name"] or ""
+                score = sess.total_score or 0
+                color = SUCCESS if score >= 70 else WARNING if score >= 40 else ERROR
                 self.recent_list.controls.append(
                     ft.Container(
                         content=ft.Row([
                             ft.Container(
-                                content=ft.Text(f"{sess.total_score:.0f}%", size=12, weight=ft.FontWeight.BOLD, color="white"),
+                                content=ft.Text(f"{score:.0f}%", size=12, weight=ft.FontWeight.BOLD, color="white"),
                                 width=42, height=42,
                                 bgcolor=color,
                                 border_radius=10,
@@ -197,7 +203,7 @@ class DashboardView(ft.View):
                             ),
                             ft.Container(width=10),
                             ft.Column([
-                                ft.Text(f"{st.given_name} {st.family_name}", size=13, weight=ft.FontWeight.W_600, color=c["TEXT1"], no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS),
+                                ft.Text(f"{given} {family}", size=13, weight=ft.FontWeight.W_600, color=c["TEXT1"], no_wrap=True, overflow=ft.TextOverflow.ELLIPSIS),
                                 ft.Text(sess.created_at.strftime("%b %d, %H:%M"), size=11, color=c["TEXT3"], no_wrap=True),
                             ], spacing=2, expand=True),
                             ft.Icon("chevron_right", color=c["TEXT3"], size=18),
@@ -281,19 +287,17 @@ class DashboardView(ft.View):
     def load_students(self):
         self.all_students = self.repo.list_students(limit=100)
         self._update_stats()
+        self._load_recent_activity()
+        # Pre-fetch latest sessions for all students in one query
+        self._latest_sessions = self.session_repo.get_latest_session_per_student()
         self._render(self.all_students)
 
     def _update_stats(self):
         self.stat_students.value = str(len(self.all_students))
-        total_sessions = 0
-        total_score = 0
-        for s in self.all_students:
-            sessions = self.session_repo.list_sessions_for_student(s.id)
-            total_sessions += len(sessions)
-            for sess in sessions:
-                total_score += sess.total_score or 0
-        self.stat_sessions.value = str(total_sessions)
-        self.stat_avg.value = f"{total_score / total_sessions:.0f}%" if total_sessions > 0 else "N/A"
+        stats = self.session_repo.get_dashboard_stats()
+        self.stat_sessions.value = str(stats["total_sessions"])
+        avg = stats["avg_score"]
+        self.stat_avg.value = f"{avg:.0f}%" if stats["total_sessions"] > 0 else "N/A"
 
     def filter_students(self, e):
         term = self.search.value.lower()
@@ -307,6 +311,7 @@ class DashboardView(ft.View):
         else:
             filtered = [s for s in self.all_students if term in f"{s.given_name} {s.family_name}".lower()]
             self._render(filtered)
+        self.student_list.update()
 
     def _clear_search(self, e):
         """Clear the search field and show all students."""
@@ -315,6 +320,7 @@ class DashboardView(ft.View):
         self.search.suffix.visible = False
         self.search.update()
         self._render(self.all_students)
+        self.student_list.update()
 
     def _highlight_text(self, text, term, c):
         """Return text with search term highlighted."""
@@ -361,14 +367,15 @@ class DashboardView(ft.View):
             )
         else:
             for s in students:
-                latest = self.session_repo.get_latest_session_for_student(s.id)
+                latest = getattr(self, '_latest_sessions', {}).get(s.id)
                 has_session = latest is not None
-                last_score = f"{latest.total_score:.0f}%" if latest else "New"
+                score_val = latest.total_score if latest and latest.total_score is not None else 0
+                last_score = f"{score_val:.0f}%" if latest else "New"
                 
                 # Determine score color
                 score_color = c["TEXT2"]
                 if latest:
-                    score_color = SUCCESS if latest.total_score >= 70 else WARNING if latest.total_score >= 40 else ERROR
+                    score_color = SUCCESS if score_val >= 70 else WARNING if score_val >= 40 else ERROR
                 
                 self.student_list.controls.append(
                     ft.Container(
@@ -421,130 +428,65 @@ class DashboardView(ft.View):
                 )
 
     def _start_scoring(self, student_id, session_id=None):
-        tap(self.page)  # Haptic feedback
+        tap(self._page_ref)  # Haptic feedback
         if session_id:
             # Continue existing session
             self._page_ref.go(f"/scoring?student_id={student_id}&session_id={session_id}")
         else:
-            # Show scale selection dialog
-            self._show_scale_dialog(student_id)
-
-    def _show_scale_dialog(self, student_id):
-        c = self.c
-        
-        def select_scale(scale):
-            select(self.page)  # Haptic feedback on selection
-            dlg.open = False
-            self._page_ref.update()
-            self._page_ref.go(f"/scoring?student_id={student_id}&scale={scale}")
-        
-        dlg = ft.AlertDialog(
-            title=ft.Text("Select Assessment Scale"),
-            content=ft.Column([
-                ft.Container(
-                    content=ft.Row([
-                        ft.Container(
-                            content=ft.Text("66", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                            width=50, height=50,
-                            bgcolor=PRIMARY,
-                            border_radius=12,
-                            alignment=ft.alignment.center,
-                        ),
-                        ft.Container(width=12),
-                        ft.Column([
-                            ft.Text("GMFM-66", size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                            ft.Text("66 items (subset)", size=12, color=c["TEXT2"]),
-                        ], expand=True),
-                    ]),
-                    padding=16,
-                    bgcolor=c["CARD"],
-                    border_radius=12,
-                    border=ft.border.all(1, c["BORDER"]),
-                    on_click=lambda _: select_scale("66"),
-                    ink=True,
-                ),
-                ft.Container(height=10),
-                ft.Container(
-                    content=ft.Row([
-                        ft.Container(
-                            content=ft.Text("88", size=24, weight=ft.FontWeight.BOLD, color="white"),
-                            width=50, height=50,
-                            bgcolor=SUCCESS,
-                            border_radius=12,
-                            alignment=ft.alignment.center,
-                        ),
-                        ft.Container(width=12),
-                        ft.Column([
-                            ft.Text("GMFM-88", size=16, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                            ft.Text("88 items (complete)", size=12, color=c["TEXT2"]),
-                        ], expand=True),
-                    ]),
-                    padding=16,
-                    bgcolor=c["CARD"],
-                    border_radius=12,
-                    border=ft.border.all(1, c["BORDER"]),
-                    on_click=lambda _: select_scale("88"),
-                    ink=True,
-                ),
-            ], tight=True),
-        )
-        self._page_ref.overlay.append(dlg)
-        dlg.open = True
-        self._page_ref.update()
+            # Start new GMFM-88 assessment directly
+            self._page_ref.go(f"/scoring?student_id={student_id}&scale=88")
 
     def _import_docx(self, e):
-        """Import student data from a DOCX file."""
-        tap(self.page)
+        """Import student data from one or more DOCX files."""
+        tap(self._page_ref)
         
         def on_file_picked(e: ft.FilePickerResultEvent):
             if not e.files:
                 return
             
-            file_path = e.files[0].path
-            try:
-                # Parse the DOCX file
-                assessment = parse_docx(file_path)
-                
-                if not assessment.is_valid:
-                    self._page_ref.snack_bar = ft.SnackBar(
-                        ft.Text("Could not extract student name from document"),
-                        bgcolor=ERROR
-                    )
-                    self._page_ref.snack_bar.open = True
-                    self._page_ref.update()
-                    return
-                
-                # Import to database
-                student_id, session_id = import_assessment_to_db(
-                    assessment, self.db_context, scale="88"
-                )
-                
-                # Refresh list
-                self.load_students()
-                self._page_ref.update()
-                
-                scores_count = len(assessment.raw_scores)
+            total_sessions = 0
+            total_files = 0
+            errors = []
+            
+            for picked in e.files:
+                file_path = picked.path
+                try:
+                    assessments = parse_docx(file_path)
+                    valid = [a for a in assessments if a.is_valid or a.raw_scores]
+                    if not valid:
+                        errors.append(f"{picked.name}: no valid data found")
+                        continue
+                    
+                    total_files += 1
+                    for assessment in valid:
+                        import_assessment_to_db(
+                            assessment, self.db_context, scale="88"
+                        )
+                        total_sessions += 1
+                    
+                except FileNotFoundError:
+                    errors.append(f"{picked.name}: file not found")
+                except Exception as ex:
+                    errors.append(f"{picked.name}: {str(ex)}")
+            
+            # Refresh list
+            self.load_students()
+            self._page_ref.update()
+            
+            if total_sessions > 0:
+                msg = f"Imported {total_sessions} session(s) from {total_files} file(s)"
+                if errors:
+                    msg += f" ({len(errors)} failed)"
                 self._page_ref.snack_bar = ft.SnackBar(
-                    ft.Text(f"Imported {assessment.student_name or assessment.given_name} with {scores_count} scores"),
-                    bgcolor=SUCCESS
+                    ft.Text(msg), bgcolor=SUCCESS
                 )
-                self._page_ref.snack_bar.open = True
-                self._page_ref.update()
-                
-            except FileNotFoundError:
+            else:
                 self._page_ref.snack_bar = ft.SnackBar(
-                    ft.Text("File not found"),
+                    ft.Text(errors[0] if errors else "No data imported"),
                     bgcolor=ERROR
                 )
-                self._page_ref.snack_bar.open = True
-                self._page_ref.update()
-            except Exception as ex:
-                self._page_ref.snack_bar = ft.SnackBar(
-                    ft.Text(f"Import failed: {str(ex)}"),
-                    bgcolor=ERROR
-                )
-                self._page_ref.snack_bar.open = True
-                self._page_ref.update()
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
         
         # Create and open file picker
         file_picker = ft.FilePicker(on_result=on_file_picked)
@@ -553,5 +495,5 @@ class DashboardView(ft.View):
         file_picker.pick_files(
             dialog_title="Select GMFM Assessment DOCX",
             allowed_extensions=["docx"],
-            allow_multiple=False,
+            allow_multiple=True,
         )

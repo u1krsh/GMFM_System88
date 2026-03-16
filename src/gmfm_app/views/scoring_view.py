@@ -505,6 +505,7 @@ class ScoringView(ft.View):
             actions_alignment=ft.MainAxisAlignment.END,
             bgcolor=c["BG"],
             shape=ft.RoundedRectangleBorder(radius=16),
+            on_dismiss=close_dialog,
         )
         
         self._page_ref.overlay.append(dialog)

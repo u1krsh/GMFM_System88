@@ -155,6 +155,7 @@ class SessionHistoryView(ft.View):
                 ft.TextButton("Cancel", on_click=cancel),
                 ft.TextButton("Delete", style=ft.ButtonStyle(color=ERROR), on_click=do_delete),
             ],
+            on_dismiss=cancel,
         )
         self._page_ref.overlay.append(dlg)
         dlg.open = True
@@ -388,9 +389,20 @@ class SessionDetailView(ft.View):
             self._page_ref.update()
             self._page_ref.go(f"/compare?session1={self.session_id}&session2={sid}")
         
+        def close_dlg(e):
+            dlg.open = False
+            if dlg in self._page_ref.overlay:
+                self._page_ref.overlay.remove(dlg)
+            self._page_ref.update()
+
         options = [ft.ListTile(title=ft.Text(f"GMFM-{s.scale} - {s.total_score:.0f}%"), subtitle=ft.Text(s.created_at.strftime("%b %d, %Y")), on_click=lambda e, sid=s.id: select_session(e, sid)) for s in other_sessions[:5]]
         
-        dlg = ft.AlertDialog(title=ft.Text("Compare with..."), content=ft.Column(options, tight=True))
+        dlg = ft.AlertDialog(
+            title=ft.Text("Compare with..."),
+            content=ft.Column(options, tight=True),
+            actions=[ft.TextButton("Cancel", on_click=close_dlg)],
+            on_dismiss=close_dlg,
+        )
         self._page_ref.overlay.append(dlg)
         dlg.open = True
         self._page_ref.update()
