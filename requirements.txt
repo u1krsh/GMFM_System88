@@ -1,0 +1,3 @@
+supabase
+fpdf2
+qrcode

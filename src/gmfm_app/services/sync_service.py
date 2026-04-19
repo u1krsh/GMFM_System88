@@ -58,9 +58,14 @@ class SyncService:
                 from supabase import create_client
                 self._client = create_client(self.config.supabase_url, self.config.supabase_key)
                 _log(f"Supabase client ready")
-            except ImportError:
-                _log("supabase package not installed")
             except Exception as e:
+                import traceback, os
+                from pathlib import Path
+                log_path = Path.home() / ".gmfm_app" / "supabase_error.log"
+                try:
+                    with open(log_path, "a") as f:
+                        f.write(f"Supabase Boot Error: {e}\n{traceback.format_exc()}\n")
+                except: pass
                 _log(f"Supabase client error: {e}")
         return self._client
 
