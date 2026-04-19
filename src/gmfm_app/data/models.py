@@ -28,8 +28,10 @@ try:
         username: constr(min_length=3)
         password_hash: str
         full_name: constr(min_length=1)
-        role: str = "clinician"
+        role: str = "teacher"
         is_active: bool = True
+        email: str = ""
+        cloud_uid: str = ""
         created_at: datetime = Field(default_factory=datetime.utcnow)
 
 except Exception:
@@ -95,8 +97,10 @@ except Exception:
         password_hash: str = ""
         full_name: str = ""
         id: Optional[int] = None
-        role: str = "clinician"
+        role: str = "teacher"
         is_active: bool = True
+        email: str = ""
+        cloud_uid: str = ""
         created_at: datetime = field(default_factory=datetime.utcnow)
 
         def __post_init__(self):

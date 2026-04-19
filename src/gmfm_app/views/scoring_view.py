@@ -35,7 +35,7 @@ DOMAIN_NAMES = {"A": "Lying & Rolling", "B": "Sitting", "C": "Crawling & Kneelin
 
 
 class ScoringView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, session_id: int = None, is_dark: bool = False, scale: str = "88"):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, session_id: int = None, is_dark: bool = False, scale: str = "88", user_id=None):
         c = get_colors(is_dark)
         super().__init__(route=f"/scoring?student_id={student_id}", padding=0, bgcolor=c["BG"])
         self._page_ref = page
@@ -43,8 +43,8 @@ class ScoringView(ft.View):
         self.student_id = student_id
         self.session_id = session_id
         self.scale = "88"  # Always GMFM-88
-        self.student_repo = StudentRepository(db_context)
-        self.session_repo = SessionRepository(db_context)
+        self.student_repo = StudentRepository(db_context, user_id=user_id)
+        self.session_repo = SessionRepository(db_context, user_id=user_id)
         self.scores = {}
         self.score_buttons = {}
         self.c = c
@@ -466,12 +466,6 @@ class ScoringView(ft.View):
                 )
             )
         
-        def close_dialog(e):
-            dialog.open = False
-            if dialog in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dialog)
-            self._page_ref.update()
-        
         dialog = ft.AlertDialog(
             modal=True,
             title=ft.Container(
@@ -500,17 +494,14 @@ class ScoringView(ft.View):
                 padding=0,
             ),
             actions=[
-                ft.TextButton("Close", on_click=close_dialog),
+                ft.TextButton("Close", on_click=lambda e: self._page_ref.close(dialog)),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
             bgcolor=c["BG"],
             shape=ft.RoundedRectangleBorder(radius=16),
-            on_dismiss=close_dialog,
         )
         
-        self._page_ref.overlay.append(dialog)
-        dialog.open = True
-        self._page_ref.update()
+        self._page_ref.open(dialog)
 
     def _set_score(self, item_id, value, color):
         c = self.c

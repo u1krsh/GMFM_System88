@@ -103,6 +103,27 @@ def init_db(path: Path) -> None:
             );
             """
         )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sync_queue (
+                id INTEGER PRIMARY KEY,
+                table_name TEXT NOT NULL,
+                record_id INTEGER NOT NULL,
+                operation TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                synced INTEGER DEFAULT 0
+            );
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sync_metadata (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            );
+            """
+        )
         
         # Migration: Add notes column if it doesn't exist
         try:
@@ -127,6 +148,52 @@ def init_db(path: Path) -> None:
             cursor.execute("ALTER TABLE sessions RENAME COLUMN patient_id TO student_id")
         except sqlite3.OperationalError:
             pass
+
+        # Migration: Add email column to app_users if missing
+        try:
+            cursor.execute("ALTER TABLE app_users ADD COLUMN email TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
+
+        # Migration: Add cloud_uid column to app_users if missing
+        try:
+            cursor.execute("ALTER TABLE app_users ADD COLUMN cloud_uid TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
+
+        # Migration: Add user_id column to students if missing
+        try:
+            cursor.execute("ALTER TABLE students ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1")
+        except sqlite3.OperationalError:
+            pass
+
+        # Migration: Add user_id column to sessions if missing
+        try:
+            cursor.execute("ALTER TABLE sessions ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1")
+        except sqlite3.OperationalError:
+            pass
+
+        # Migration: Rename old 'clinician' role to 'teacher'
+        try:
+            cursor.execute("UPDATE app_users SET role = 'teacher' WHERE role = 'clinician'")
+        except sqlite3.OperationalError:
+            pass
+
+        # Student access table (for parent/sponsor linking)
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS student_access (
+                id INTEGER PRIMARY KEY,
+                student_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                access_level TEXT NOT NULL DEFAULT 'view',
+                granted_by INTEGER,
+                created_at TEXT NOT NULL,
+                FOREIGN KEY(student_id) REFERENCES students(id),
+                UNIQUE(student_id, user_id)
+            );
+            """
+        )
             
         conn.commit()
 

@@ -264,6 +264,43 @@ class GMFMApp:
             return
 
         self.auth_service = AuthService(self.db_context)
+
+        # Init cloud sync service (non-blocking)
+        self.sync_service = None
+        self.sync_worker = None
+        try:
+            from gmfm_app.services.sync_config import load_config
+            from gmfm_app.services.sync_service import SyncService
+            from gmfm_app.services.sync_worker import SyncWorker
+            sync_config = load_config(self.page)
+            if sync_config.is_configured():
+                self.sync_service = SyncService(self.db_context, sync_config)
+                self.sync_worker = SyncWorker(self.sync_service, interval_seconds=60)
+                self.sync_worker.start()
+                _log("Cloud sync service initialized")
+            else:
+                self.sync_service = SyncService(self.db_context, sync_config)
+                _log("Cloud sync service created (not configured)")
+            # Give auth_service access to the sync service for cloud auth
+            self.auth_service.sync_service = self.sync_service
+
+            # Re-authenticate to Supabase if user is already logged in locally
+            # (session doesn't persist across app restarts)
+            try:
+                current = self.auth_service.current_user(self.page)
+                if current and self.sync_service:
+                    email = getattr(current, 'email', '')
+                    if email:
+                        # Try to restore session — user will need to re-login if this fails
+                        if not self.sync_service.ensure_auth():
+                            _log(f"Session expired for {email}. Will re-auth on next login.")
+                        else:
+                            _log(f"Restored cloud session for {email}")
+            except Exception as e:
+                _log(f"Cloud re-auth check skipped: {e}")
+
+        except Exception as e:
+            _log(f"Sync service init skipped: {e}")
         
         _log("Navigating to /")
         self.page.go("/")
@@ -316,42 +353,98 @@ class GMFMApp:
             self._nav_lock = False
 
     def _create_view(self, route: str):
-        """Create a view for the given route. Never raises — returns error view on failure."""
+        """Create a view for the given route with role-based access control."""
         try:
             is_dark = self.page.theme_mode == ft.ThemeMode.DARK
-            
+            current_user = self.auth_service.current_user(self.page)
+            user_id = int(current_user.id) if current_user and current_user.id else None
+            user_role = getattr(current_user, 'role', 'teacher') if current_user else 'teacher'
+
             if route.startswith("/login"):
                 return LoginView(self.page, self.auth_service, is_dark)
-            elif route == "/":
-                current_user = self.auth_service.current_user(self.page)
-                return DashboardView(self.page, self.db_context, is_dark, current_user=current_user)
+
+            # ── Role-based route guards ────────────────────────────
+            # Sponsor: only dashboard (aggregate stats)
+            if user_role == "sponsor" and route != "/":
+                return self._access_denied_view(route, "Sponsors can only view aggregate statistics")
+
+            # Parent: dashboard + session detail (read-only)
+            if user_role == "parent":
+                allowed = route == "/" or route.startswith("/session") or route.startswith("/history")
+                if not allowed:
+                    return self._access_denied_view(route, "Parents can view progress but cannot create or modify data")
+
+            # ── Build views ────────────────────────────────────────
+            if route == "/":
+                return DashboardView(self.page, self.db_context, is_dark,
+                                     current_user=current_user, user_id=user_id)
             elif route.startswith("/student"):
                 pid = self._param_from_route(route, "id")
-                return StudentView(self.page, self.db_context, is_dark, int(pid) if pid else None)
+                return StudentView(self.page, self.db_context, is_dark,
+                                   int(pid) if pid else None, user_id=user_id)
             elif route == "/settings":
-                return SettingsView(self.page, self.db_context, is_dark, auth_service=self.auth_service)
+                return SettingsView(self.page, self.db_context, is_dark,
+                                   auth_service=self.auth_service,
+                                   sync_service=self.sync_service, user_id=user_id)
             elif route.startswith("/scoring"):
                 pid = self._param_from_route(route, "student_id")
                 sid = self._param_from_route(route, "session_id")
                 scale = self._param_from_route(route, "scale") or "88"
                 if pid:
-                    return ScoringView(self.page, self.db_context, int(pid), int(sid) if sid else None, is_dark, scale)
+                    return ScoringView(self.page, self.db_context, int(pid),
+                                       int(sid) if sid else None, is_dark, scale, user_id=user_id)
             elif route.startswith("/history"):
                 pid = self._param_from_route(route, "student_id")
                 if pid:
-                    return SessionHistoryView(self.page, self.db_context, int(pid), is_dark)
+                    return SessionHistoryView(self.page, self.db_context, int(pid), is_dark, user_id=user_id)
             elif route.startswith("/compare"):
                 s1 = self._param_from_route(route, "session1")
                 s2 = self._param_from_route(route, "session2")
                 if s1 and s2:
-                    return CompareView(self.page, self.db_context, int(s1), int(s2), is_dark)
+                    return CompareView(self.page, self.db_context, int(s1), int(s2), is_dark, user_id=user_id)
             elif route.startswith("/session"):
                 sid = self._param_from_route(route, "session_id")
                 if sid:
-                    return SessionDetailView(self.page, self.db_context, int(sid), is_dark)
+                    return SessionDetailView(self.page, self.db_context, int(sid), is_dark, user_id=user_id)
             return None
         except Exception as e:
             return _make_error_view(route, f"View error ({route}): {e}", traceback.format_exc())
+
+    def _access_denied_view(self, route: str, message: str):
+        """Create a view showing access denied for the user's role."""
+        c = self._c if hasattr(self, '_c') else {"TEXT1": "#0F172A", "TEXT2": "#475569"}
+        is_dark = self.page.theme_mode == ft.ThemeMode.DARK
+        bg = "#0F172A" if is_dark else "#F8FAFC"
+        text1 = "#F8FAFC" if is_dark else "#0F172A"
+        text2 = "#94A3B8" if is_dark else "#475569"
+        return ft.View(
+            route=route, bgcolor=bg, padding=0,
+            controls=[ft.SafeArea(
+                content=ft.Container(
+                    content=ft.Column([
+                        ft.Container(height=60),
+                        ft.Icon("lock_outline", size=64, color="#F59E0B"),
+                        ft.Container(height=16),
+                        ft.Text("Access Restricted", size=22,
+                                weight=ft.FontWeight.BOLD, color=text1),
+                        ft.Container(height=8),
+                        ft.Text(message, size=14, color=text2,
+                                text_align=ft.TextAlign.CENTER),
+                        ft.Container(height=24),
+                        ft.Container(
+                            content=ft.Text("Go Back", color="white",
+                                            weight=ft.FontWeight.BOLD, size=14),
+                            height=44, bgcolor="#0D9488", border_radius=12,
+                            alignment=ft.alignment.center, width=160,
+                            on_click=lambda _: self.page.go("/"),
+                            ink=True,
+                        ),
+                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    padding=30, expand=True, alignment=ft.alignment.center,
+                ),
+                expand=True,
+            )],
+        )
 
     def _create_scaled_view(self, route: str):
         """Create a route view and apply Android accessibility scale when needed."""

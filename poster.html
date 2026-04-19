@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1600, initial-scale=1.0">
+    <title>MotorMeasure Pro - Project Poster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: #e8ecf1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 15px;
+        }
+
+        .poster {
+            width: 1540px;
+            background: linear-gradient(155deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+            border-radius: 20px;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow:
+                0 1px 3px rgba(0,0,0,0.04),
+                0 20px 50px rgba(0,0,0,0.08);
+            display: grid;
+            grid-template-rows: auto auto;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Decorative soft blurs */
+        .poster::before, .poster::after {
+            content: '';
+            position: absolute;
+            width: 350px; height: 350px;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .poster::before { top: -100px; left: -80px; background: radial-gradient(circle, rgba(59,130,246,0.15), transparent 70%); }
+        .poster::after  { bottom: -100px; right: -80px; background: radial-gradient(circle, rgba(139,92,246,0.12), transparent 70%); }
+
+        /* ═══ HEADER ═══ */
+        .header {
+            padding: 26px 50px 18px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            background: linear-gradient(135deg, rgba(59,130,246,0.03), rgba(139,92,246,0.03));
+        }
+
+        .header h1 {
+            font-size: 38px;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #1e293b, #3b82f6, #7c3aed);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.15;
+        }
+
+        .header .subtitle {
+            font-size: 15px;
+            font-weight: 500;
+            color: #94a3b8;
+            margin-top: 4px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* ═══ 2-ROW CONTENT GRID ═══ */
+        .main {
+            display: grid;
+            grid-template-columns: 1fr 1.15fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 16px;
+            padding: 18px 30px 8px;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ═══ CARDS ═══ */
+        .card {
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 14px;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .card:hover {
+            border-color: rgba(59, 130, 246, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 16px; right: 16px;
+            height: 3px;
+            border-radius: 0 0 3px 3px;
+            transition: opacity 0.3s ease;
+        }
+        .card:hover::after { opacity: 1; }
+
+        .card.blue::after   { background: linear-gradient(90deg, #3b82f6, #60a5fa); opacity: 0.6; }
+        .card.green::after  { background: linear-gradient(90deg, #10b981, #34d399); opacity: 0.6; }
+        .card.purple::after { background: linear-gradient(90deg, #8b5cf6, #a78bfa); opacity: 0.6; }
+        .card.orange::after { background: linear-gradient(90deg, #f97316, #fb923c); opacity: 0.6; }
+        .card.teal::after   { background: linear-gradient(90deg, #14b8a6, #2dd4bf); opacity: 0.6; }
+        .card.rose::after   { background: linear-gradient(90deg, #f43f5e, #fb7185); opacity: 0.6; }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .num {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 22px; height: 22px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 800;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .card.blue .num   { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .card.green .num  { background: linear-gradient(135deg, #10b981, #059669); }
+        .card.purple .num { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .card.orange .num { background: linear-gradient(135deg, #f97316, #ea580c); }
+        .card.teal .num   { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+        .card.rose .num   { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+
+        .card-content {
+            font-size: 13px;
+            line-height: 1.55;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        .card-content ul { list-style: none; padding: 0; }
+
+        .card-content li {
+            padding-left: 16px;
+            margin-bottom: 5px;
+            position: relative;
+        }
+        .card-content li:last-child { margin-bottom: 0; }
+
+        .card-content li::before {
+            content: '';
+            position: absolute;
+            left: 2px; top: 7px;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+        }
+
+        .card.blue li::before   { background: #3b82f6; }
+        .card.green li::before  { background: #10b981; }
+        .card.purple li::before { background: #8b5cf6; }
+        .card.orange li::before { background: #f97316; }
+        .card.teal li::before   { background: #14b8a6; }
+        .card.rose li::before   { background: #f43f5e; }
+
+        /* ═══ ARCHITECTURE ═══ */
+        .arch {
+            grid-row: 1 / 3;
+            grid-column: 2;
+            background:
+                radial-gradient(ellipse at 50% 0%, rgba(59,130,246,0.04) 0%, transparent 60%),
+                #ffffff;
+            border: 1px solid rgba(59, 130, 246, 0.12);
+            border-radius: 16px;
+            padding: 18px 22px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .arch-heading {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .arch-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            flex: 1;
+            justify-content: space-between;
+        }
+
+        .arch-box {
+            width: 78%;
+            background: #f8fafc;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: 10px;
+            padding: 10px 14px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .arch-box:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.08);
+            transform: scale(1.03);
+            background: #ffffff;
+        }
+
+        .arch-box .label { font-size: 14px; font-weight: 700; color: #1e293b; }
+        .arch-box .sub   { font-size: 11px; font-weight: 500; color: #3b82f6; margin-top: 2px; }
+
+        .arch-box.cloud {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(139, 92, 246, 0.05));
+            border-color: rgba(139, 92, 246, 0.2);
+            border-radius: 14px;
+        }
+        .arch-box.cloud:hover { border-color: rgba(139, 92, 246, 0.5); box-shadow: 0 4px 16px rgba(139,92,246,0.1); }
+        .arch-box.cloud .sub { color: #7c3aed; }
+
+        .arch-connector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 28px;
+            position: relative;
+            width: 100%;
+        }
+
+        .arch-line {
+            width: 2px;
+            flex: 1;
+            position: relative;
+        }
+
+        .arch-line.solid { background: linear-gradient(to bottom, rgba(59,130,246,0.35), rgba(59,130,246,0.2)); }
+        .arch-line.dashed { background: repeating-linear-gradient(to bottom, rgba(139,92,246,0.35) 0px, rgba(139,92,246,0.35) 4px, transparent 4px, transparent 8px); }
+
+        .arch-line::after {
+            content: '';
+            position: absolute;
+            bottom: -1px; left: -3px;
+            border-width: 4px 4px 0;
+            border-style: solid;
+        }
+        .arch-line.solid::after { border-color: rgba(59,130,246,0.4) transparent transparent; }
+        .arch-line.dashed::after { border-color: rgba(139,92,246,0.4) transparent transparent; }
+
+        .arch-tag {
+            position: absolute;
+            left: calc(50% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+            background: #ffffff;
+            padding: 2px 8px;
+            border-radius: 20px;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        /* ═══ BOTTOM STRIP ═══ */
+        .bottom {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            padding: 10px 30px 24px;
+            position: relative;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div class="poster">
+        <div class="header">
+            <h1>MotorMeasure Pro (GMFM-88)</h1>
+            <div class="subtitle">Digitizing Gross Motor Function Measure Clinical Workflows</div>
+        </div>
+
+        <div class="main">
+            <!-- Row 1, Col 1 -->
+            <div class="card blue">
+                <div class="card-title"><span class="num">1</span>Abstract</div>
+                <div class="card-content">
+                    MotorMeasure Pro is a clinical assessment application that digitizes the GMFM-88 scoring process. It replaces paper-based scoresheets with a mobile-first digital workflow supporting 88 items across 5 motor domains, with offline-first cloud sync architecture.
+                </div>
+            </div>
+
+            <!-- Architecture spans both rows -->
+            <div class="arch">
+                <div class="arch-heading">Architecture</div>
+                <div class="arch-stack">
+                    <div class="arch-box">
+                        <div class="label">Views Layer</div>
+                        <div class="sub">Flet UI &mdash; Dashboard, Scoring, Settings</div>
+                    </div>
+                    <div class="arch-connector">
+                        <div class="arch-line solid">
+                            <span class="arch-tag">Events &amp; Updates</span>
+                        </div>
+                    </div>
+                    <div class="arch-box">
+                        <div class="label">Services Layer</div>
+                        <div class="sub">Auth, Sync, Report &amp; Scoring Engine</div>
+                    </div>
+                    <div class="arch-connector">
+                        <div class="arch-line solid">
+                            <span class="arch-tag">Read &amp; Write</span>
+                        </div>
+                    </div>
+                    <div class="arch-box">
+                        <div class="label">Data Layer</div>
+                        <div class="sub">SQLite DB &amp; Pydantic Models</div>
+                    </div>
+                    <div class="arch-connector" style="height: 36px;">
+                        <div class="arch-line dashed">
+                            <span class="arch-tag">60s Background Sync</span>
+                        </div>
+                    </div>
+                    <div class="arch-box cloud">
+                        <div class="label">Cloud Backend</div>
+                        <div class="sub">Supabase PostgreSQL + RLS</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Row 1, Col 3 -->
+            <div class="card green">
+                <div class="card-title"><span class="num">2</span>Design Objectives</div>
+                <div class="card-content">
+                    <ul>
+                        <li>Digitize clinical workflows intuitively</li>
+                        <li>Cross-platform native (Android, iOS, Desktop)</li>
+                        <li>Offline-first resiliency with local processing</li>
+                        <li>Enterprise-level encrypted data protection</li>
+                        <li>Automated intelligent cloud synchronization</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Row 2, Col 1 -->
+            <div class="card purple">
+                <div class="card-title"><span class="num">4</span>Prototype Design</div>
+                <div class="card-content">
+                    <ul>
+                        <li>Built with Python 3.11 and Flet framework</li>
+                        <li>Three-tier PDF fallback generation system</li>
+                        <li>Hardware-optimized haptics and UI scaling</li>
+                        <li>Zero-dependency deploy with embedded assets</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Row 2, Col 3 -->
+            <div class="card orange">
+                <div class="card-title"><span class="num">5</span>Working Model</div>
+                <div class="card-content">
+                    <ul>
+                        <li>Git-like sync logs writes to a local queue</li>
+                        <li>Background worker pushes/pulls every 60s</li>
+                        <li>Dual Auth: PBKDF2 Local + Supabase Cloud</li>
+                        <li>Automated score computation and charting</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom strip: Advantages + Applications -->
+        <div class="bottom">
+            <div class="card teal">
+                <div class="card-title"><span class="num">6</span>Advantages</div>
+                <div class="card-content">
+                    <ul>
+                        <li>Clinical-grade auto-generated PDF reports</li>
+                        <li>Operates flawlessly offline in remote areas</li>
+                        <li>Fernet encryption-at-rest for patient privacy</li>
+                        <li>Rapid legacy DOCX assessment imports</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="card rose">
+                <div class="card-title"><span class="num">7</span>Applications</div>
+                <div class="card-content">
+                    <ul>
+                        <li>Pediatric Physiotherapy clinics worldwide</li>
+                        <li>Longitudinal clinical mobility research trials</li>
+                        <li>Remote tele-rehabilitation monitoring</li>
+                        <li>Special education disability evaluations</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

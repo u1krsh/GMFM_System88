@@ -45,13 +45,13 @@ def get_greeting(display_name: str | None = None):
 
 
 class DashboardView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, current_user=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, current_user=None, user_id=None):
         c = get_colors(is_dark)
         super().__init__(route="/", padding=0, bgcolor=c["BG"], scroll=ft.ScrollMode.AUTO)
         self._page_ref = page
         self.db_context = db_context
-        self.repo = StudentRepository(db_context)
-        self.session_repo = SessionRepository(db_context)
+        self.repo = StudentRepository(db_context, user_id=user_id)
+        self.session_repo = SessionRepository(db_context, user_id=user_id)
         self.c = c
         self.search_term = ""  # For search highlighting
 
@@ -99,6 +99,7 @@ class DashboardView(ft.View):
                             ft.Text(get_greeting(display_name), size=14, color=c["TEXT2"]),
                             ft.Text("MotorMeasure", size=22, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                         ], spacing=0, expand=True),
+                        self._build_sync_indicator(c),
                         ft.IconButton("settings", icon_color=c["TEXT2"], on_click=lambda _: self._page_ref.go("/settings")),
                     ]),
                     ft.Container(height=12),
@@ -251,6 +252,55 @@ class DashboardView(ft.View):
             on_click=on_click,
             ink=True,
         )
+
+    def _build_sync_indicator(self, c):
+        """Build a small cloud sync status icon for the header."""
+        try:
+            from gmfm_app.services.sync_config import load_config
+            config = load_config(self._page_ref)
+            if not config.is_configured():
+                return ft.Container()  # Empty — no indicator if not configured
+
+            # Try to get pending count from sync_queue directly
+            pending = 0
+            try:
+                with self.db_context.connect() as conn:
+                    cur = conn.cursor()
+                    cur.execute("SELECT COUNT(*) FROM sync_queue WHERE synced = 0")
+                    row = cur.fetchone()
+                    pending = int(row[0]) if row else 0
+            except Exception:
+                pass
+
+            if pending > 0:
+                return ft.Container(
+                    content=ft.Stack([
+                        ft.Icon("cloud_upload", color="#F59E0B", size=22),
+                        ft.Container(
+                            content=ft.Text(str(pending), size=8, weight=ft.FontWeight.BOLD, color="white"),
+                            width=16, height=16,
+                            bgcolor="#EF4444",
+                            border_radius=8,
+                            alignment=ft.alignment.center,
+                            top=0, right=0,
+                        ),
+                    ], width=28, height=28),
+                    on_click=lambda _: self._page_ref.go("/settings"),
+                    tooltip=f"{pending} pending syncs",
+                )
+            else:
+                is_logged_in = config.is_logged_in()
+                return ft.Container(
+                    content=ft.Icon(
+                        "cloud_done" if is_logged_in else "cloud_off",
+                        color="#10B981" if is_logged_in else c["TEXT3"],
+                        size=22,
+                    ),
+                    on_click=lambda _: self._page_ref.go("/settings"),
+                    tooltip="Cloud synced" if is_logged_in else "Cloud not connected",
+                )
+        except Exception:
+            return ft.Container()  # Graceful fallback
 
     def _build_tip_card(self):
         """Build a motivational tip card that changes based on data."""

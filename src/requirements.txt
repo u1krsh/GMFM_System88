@@ -1,4 +1,5 @@
 flet==0.28.3
 fpdf2
+supabase>=2.0.0
 
 

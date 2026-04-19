@@ -14,9 +14,11 @@ from gmfm_app.data.repositories import UserRepository
 SESSION_USER_ID = "auth_user_id"
 SESSION_USERNAME = "auth_username"
 
+VALID_ROLES = ("admin", "teacher", "parent", "sponsor")
+
 
 class AuthProvider:
-    """Base auth provider. Replace this with an API-backed provider later."""
+    """Base auth provider."""
 
     def authenticate(self, username: str, password: str) -> Optional[AppUser]:
         raise NotImplementedError
@@ -63,42 +65,139 @@ def verify_password(password: str, encoded_hash: str) -> bool:
         return False
 
 
-class AuthService:
-    """Auth facade that can be switched from local DB to online services later."""
+def _log(msg):
+    try:
+        print(f"[AUTH] {msg}", flush=True)
+    except Exception:
+        pass
 
-    def __init__(self, db_context):
+
+class AuthService:
+    """Auth facade with automatic Supabase cloud registration/login."""
+
+    def __init__(self, db_context, sync_service=None):
         self.repo = UserRepository(db_context)
         self.provider: AuthProvider = LocalAuthProvider(self.repo)
+        self.sync_service = sync_service  # Set by main.py after sync init
 
     def has_users(self) -> bool:
         return self.repo.count_users() > 0
 
-    def create_first_admin(self, full_name: str, username: str, password: str) -> AppUser:
-        if self.has_users():
-            raise ValueError("An account already exists")
+    def create_user_account(self, full_name: str, username: str, password: str,
+                            email: str = "", role: str = "teacher") -> AppUser:
+        """Create a new user account. Auto-registers to Supabase."""
         normalized = _normalize_username(username)
         if len(normalized) < 3:
             raise ValueError("Username must be at least 3 characters")
-        if len(password or "") < 8:
-            raise ValueError("Password must be at least 8 characters")
+        if len(password or "") < 6:
+            raise ValueError("Password must be at least 6 characters")
+        if role not in VALID_ROLES:
+            raise ValueError(f"Invalid role: {role}")
+
+        # Check if username already exists
+        existing = self.repo.get_by_username(normalized)
+        if existing:
+            raise ValueError("Username already taken")
+
+        # Check if email already used
+        email_clean = (email or "").strip().lower()
+        if email_clean:
+            existing_email = self.repo.get_by_email(email_clean)
+            if existing_email:
+                raise ValueError("Email already registered")
+
+        # Auto-register to Supabase FIRST to get cloud_uid
+        cloud_uid = ""
+        if email_clean and self.sync_service:
+            cloud_uid = self._cloud_register(email_clean, password, full_name, role)
+
         user = AppUser(
             username=normalized,
             password_hash=hash_password(password),
-            full_name=(full_name or "").strip() or "Admin",
-            role="admin",
+            full_name=(full_name or "").strip() or "User",
+            role=role,
             is_active=True,
+            email=email_clean,
+            cloud_uid=cloud_uid,
             created_at=datetime.utcnow(),
         )
-        return self.repo.create_user(user)
+        created = self.repo.create_user(user)
+        _log(f"Created local user: {created.username} (id={created.id}, role={role}, cloud_uid={cloud_uid[:8] if cloud_uid else 'none'})")
+        return created
 
     def login(self, page, username: str, password: str) -> Optional[AppUser]:
+        """Login locally and auto-sign-in to Supabase."""
         normalized = _normalize_username(username)
         user = self.provider.authenticate(normalized, password)
         if not user:
             return None
         page.client_storage.set(SESSION_USER_ID, int(user.id or 0))
         page.client_storage.set(SESSION_USERNAME, user.username)
+
+        # Auto-login to Supabase cloud (non-blocking, silent)
+        email = getattr(user, 'email', '')
+        cloud_uid = getattr(user, 'cloud_uid', '')
+        if email and self.sync_service:
+            self._cloud_login(page, email, password, user)
+
+        _log(f"Login OK: {user.username} (role={user.role})")
         return user
+
+    def _cloud_register(self, email: str, password: str, full_name: str, role: str) -> str:
+        """Register with Supabase Auth. Returns cloud_uid or empty string."""
+        try:
+            sync = self.sync_service
+            if not sync:
+                return ""
+
+            # Pass metadata so the trigger creates the profile with role
+            ok, msg, uid = sync.register_with_metadata(email, password, full_name, role)
+            if ok:
+                _log(f"Cloud register OK: {email} -> {uid[:8]}")
+                return uid
+            else:
+                _log(f"Cloud register failed: {msg}")
+                return ""
+        except Exception as e:
+            _log(f"Cloud register error: {e}")
+            return ""
+
+    def _cloud_login(self, page, email: str, password: str, user: AppUser):
+        """Auto-login to Supabase. Updates cloud_uid if missing."""
+        try:
+            sync = self.sync_service
+            if not sync:
+                return
+
+            ok, msg = sync.login(email, password,
+                                 full_name=user.full_name, role=user.role)
+            if ok:
+                # Store cloud_uid if we don't have it yet
+                if not getattr(user, 'cloud_uid', '') and sync._user_id:
+                    self.repo.update_cloud_uid(user.id, sync._user_id)
+                    user.cloud_uid = sync._user_id
+                    _log(f"Stored cloud_uid for {user.username}: {sync._user_id[:8]}")
+
+                from gmfm_app.services.sync_config import save_config
+                sync.config.cloud_email = email
+                save_config(page, sync.config)
+            else:
+                # If login fails, try register (first time on new device)
+                ok2, msg2, uid = sync.register_with_metadata(
+                    email, password,
+                    user.full_name, user.role
+                )
+                if ok2:
+                    self.repo.update_cloud_uid(user.id, uid)
+                    user.cloud_uid = uid
+                    from gmfm_app.services.sync_config import save_config
+                    sync.config.cloud_email = email
+                    save_config(page, sync.config)
+                    _log(f"Auto-registered to cloud: {email}")
+                else:
+                    _log(f"Cloud login/register failed: {msg2}")
+        except Exception as e:
+            _log(f"Cloud auth error: {e}")
 
     def current_user(self, page) -> Optional[AppUser]:
         try:
@@ -126,3 +225,9 @@ class AuthService:
             page.client_storage.remove(SESSION_USERNAME)
         except Exception:
             pass
+        # Also logout from Supabase
+        if self.sync_service:
+            try:
+                self.sync_service.cloud_logout()
+            except Exception:
+                pass

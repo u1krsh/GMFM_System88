@@ -28,14 +28,14 @@ ERROR = "#EF4444"
 
 
 class StudentView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None, user_id=None):
         c = get_colors(is_dark)
         route = f"/student?id={student_id}" if student_id else "/student"
         super().__init__(route=route, padding=0, bgcolor=c["BG"])
         self.page = page
         self.db_context = db_context
-        self.repo = StudentRepository(db_context)
-        self.session_repo = SessionRepository(db_context)
+        self.repo = StudentRepository(db_context, user_id=user_id)
+        self.session_repo = SessionRepository(db_context, user_id=user_id)
         self.student_id = student_id
         self.c = c
         self.is_edit = student_id is not None
