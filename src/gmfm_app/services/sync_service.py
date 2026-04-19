@@ -173,18 +173,34 @@ class SyncService:
         if not client:
             return
         try:
-            # Use explicit params first, then pending profile data, then defaults
             profile_data = getattr(self, '_pending_profile', None) or {}
             final_name = full_name or profile_data.get('full_name', '')
-            final_role = role or profile_data.get('role', 'teacher')
+            final_role = role or profile_data.get('role', '')
+            final_user = profile_data.get('username', '')
+
+            if not final_name or not final_role or not final_user:
+                try:
+                    from gmfm_app.data.repositories import UserRepository
+                    repo = UserRepository(self.db_context)
+                    local_user = repo.get_by_email(email)
+                    if local_user:
+                        final_name = final_name or local_user.full_name
+                        final_role = final_role or local_user.role
+                        final_user = final_user or local_user.username
+                except Exception as e:
+                    _log(f"Failed to fetch local user for profile fallback: {e}")
+
+            final_role = final_role or 'teacher'
+            final_user = final_user or email.split('@')[0]
 
             client.table("profiles").upsert({
                 "id": user_id,
+                "username": final_user,
                 "full_name": final_name,
                 "role": final_role,
                 "email": email,
             }, on_conflict="id").execute()
-            _log(f"Profile upserted for {email} (role={final_role})")
+            _log(f"Profile upserted for {email} (role={final_role}, user={final_user})")
             self._pending_profile = None
         except Exception as e:
             _log(f"Profile upsert error: {e}")

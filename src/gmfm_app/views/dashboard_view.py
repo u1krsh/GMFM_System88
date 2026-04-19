@@ -510,7 +510,7 @@ class DashboardView(ft.View):
                     total_files += 1
                     for assessment in valid:
                         import_assessment_to_db(
-                            assessment, self.db_context, scale="88"
+                            assessment, self.db_context, scale="88", user_id=getattr(self, '_user_id', 1)
                         )
                         total_sessions += 1
                     

@@ -238,10 +238,53 @@ def parse_docx(file_path: str | Path) -> list:
         elif isinstance(item, DocxTable):
             for row in item.rows:
                 cells = row.cells
+                
+                # Check for metadata hidden in tables (e.g. headers)
+                for cell in cells:
+                    text = cell.text.strip()
+                    if not text: continue
+                    text_lower = text.lower()
+                    
+                    if "name" in text_lower and "evaluator" not in text_lower:
+                        val = _extract_paragraph_value(text, "Name")
+                        if val:
+                            last_name = val
+                            if not current.raw_scores:
+                                current.student_name = val
+                                current.given_name, current.family_name = _parse_name(val)
+                    
+                    elif "assessment date" in text_lower or text_lower.startswith("date"):
+                        val = _extract_paragraph_value(text, "Assessment Date") or _extract_paragraph_value(text, "Date:") or _extract_paragraph_value(text, "Date")
+                        if val:
+                            parsed_date = _parse_date(val)
+                            if parsed_date:
+                                if current.raw_scores:
+                                    _finalize(current)
+                                    current = ImportedAssessment()
+                                    current.student_name = last_name
+                                    current.given_name, current.family_name = _parse_name(last_name)
+                                    current.evaluator_name = last_evaluator
+                                current.assessment_date = parsed_date
+
+                # Check for scores
                 if len(cells) >= 3:
                     item_num = _extract_item_number(cells[0].text)
                     score = _parse_score(cells[2].text)
+                    # Alternate format fallback
+                    if score is None and len(cells) >= 4:
+                        score = _parse_score(cells[3].text)
+                        
                     if item_num is not None and score is not None:
+                        # Bulletproof session split: If we see an item we already scored (like Item #1), 
+                        # it's 100% a new repeated session table.
+                        if item_num in current.raw_scores:
+                            _finalize(current)
+                            current = ImportedAssessment()
+                            current.student_name = last_name
+                            current.given_name, current.family_name = _parse_name(last_name)
+                            current.evaluator_name = last_evaluator
+                            # We don't have a new date yet, but keep it blank so user can fill it.
+                            
                         current.raw_scores[item_num] = score
 
     # Finalise the last (or only) session
@@ -253,71 +296,75 @@ def parse_docx(file_path: str | Path) -> list:
 def import_assessment_to_db(
     assessment: ImportedAssessment,
     db_context,
-    scale: str = "88"
+    scale: str = "88",
+    user_id: int = 1
 ) -> Tuple[int, int]:
     """
-    Import an assessment into the database.
+    Import an assessment into the database using Repositories to ensure cloud sync.
     
     Args:
         assessment: Parsed assessment data
         db_context: Database context for connections
         scale: GMFM scale ("88")
+        user_id: ID of the currently logged-in user
         
     Returns:
         Tuple of (student_id, session_id)
     """
-    import json
+    from gmfm_app.data.models import Student, Session
+    from gmfm_app.data.repositories import StudentRepository, SessionRepository
     from datetime import datetime
-    
-    with db_context.connect() as conn:
-        cursor = conn.cursor()
-        
-        # Check if student already exists
-        given = assessment.given_name or assessment.student_name.split()[0] if assessment.student_name else "Unknown"
-        family = assessment.family_name or (assessment.student_name.split()[-1] if len(assessment.student_name.split()) > 1 else "Student")
-        
-        cursor.execute(
-            "SELECT id FROM students WHERE given_name = ? AND family_name = ?",
-            (given, family)
+
+    student_repo = StudentRepository(db_context, user_id=user_id)
+    session_repo = SessionRepository(db_context, user_id=user_id)
+
+    # 1. Deduplicate or Create Student
+    given = assessment.given_name or (assessment.student_name.split()[0] if assessment.student_name else "Unknown")
+    family = assessment.family_name or (assessment.student_name.split()[-1] if assessment.student_name and len(assessment.student_name.split()) > 1 else "Student")
+
+    # Try to find existing student for this user
+    existing_students = student_repo.list_students()
+    student_id = None
+    for s in existing_students:
+        if s.given_name == given and s.family_name == family:
+            student_id = s.id
+            break
+            
+    if not student_id:
+        now = datetime.utcnow()
+        new_student = Student(
+            given_name=given,
+            family_name=family,
+            dob=None,
+            identifier=None,
+            created_at=now
         )
-        row = cursor.fetchone()
-        
-        if row:
-            student_id = row[0]
-        else:
-            # Create new student
-            now = datetime.utcnow().isoformat()
-            cursor.execute(
-                """INSERT INTO students (given_name, family_name, dob, identifier, created_at)
-                   VALUES (?, ?, ?, ?, ?)""",
-                (given, family, None, None, now)
-            )
-            student_id = cursor.lastrowid
-        
-        # Calculate total score
-        if assessment.raw_scores:
-            total = sum(assessment.raw_scores.values()) / (len(assessment.raw_scores) * 3) * 100
-        else:
-            total = 0.0
-        
-        # Use assessment date for created_at when available
-        if assessment.assessment_date:
-            created = datetime(
-                assessment.assessment_date.year,
-                assessment.assessment_date.month,
-                assessment.assessment_date.day,
-            ).isoformat()
-        else:
-            created = datetime.utcnow().isoformat()
-        
-        # Create session
-        cursor.execute(
-            """INSERT INTO sessions (student_id, scale, raw_scores, total_score, notes, created_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (student_id, scale, json.dumps(assessment.raw_scores), total, assessment.notes, created)
+        created_student = student_repo.create_student(new_student)
+        student_id = created_student.id
+
+    # 2. Create Session
+    if assessment.raw_scores:
+        total = sum(assessment.raw_scores.values()) / (len(assessment.raw_scores) * 3) * 100
+    else:
+        total = 0.0
+
+    if assessment.assessment_date:
+        created = datetime(
+            assessment.assessment_date.year,
+            assessment.assessment_date.month,
+            assessment.assessment_date.day,
         )
-        session_id = cursor.lastrowid
-        
-        conn.commit()
-        
-    return student_id, session_id
+    else:
+        created = datetime.utcnow()
+
+    new_session = Session(
+        student_id=student_id,
+        scale=scale,
+        raw_scores=assessment.raw_scores,
+        total_score=total,
+        notes=assessment.notes,
+        created_at=created
+    )
+    created_session = session_repo.create_session(new_session)
+
+    return student_id, created_session.id

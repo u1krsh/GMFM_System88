@@ -45,6 +45,7 @@ DROP TABLE IF EXISTS profiles CASCADE;
 -- =============================================
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  username TEXT UNIQUE,
   full_name TEXT NOT NULL DEFAULT '',
   role TEXT NOT NULL DEFAULT 'teacher',
   email TEXT NOT NULL DEFAULT '',

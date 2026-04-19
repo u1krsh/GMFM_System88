@@ -129,8 +129,43 @@ class AuthService:
         """Login locally and auto-sign-in to Supabase."""
         normalized = _normalize_username(username)
         user = self.provider.authenticate(normalized, password)
+
+        # Fallback for new devices: if local user is not found, but it looks like an email,
+        # try logging in to Supabase directly to restore the account locally.
+        if not user and "@" in normalized and getattr(self, 'sync_service', None):
+            try:
+                client = self.sync_service._get_client()
+                if client:
+                    result = client.auth.sign_in_with_password({"email": normalized, "password": password})
+                    cloud_user = getattr(result, 'user', None)
+                    if cloud_user:
+                        self.sync_service._user_id = cloud_user.id
+                        # Fetch profile from Supabase
+                        prof_res = client.table("profiles").select("*").eq("id", cloud_user.id).execute()
+                        prof_data = prof_res.data[0] if prof_res.data else {}
+                        full_name = prof_data.get("full_name") or "User"
+                        role = prof_data.get("role") or "teacher"
+                        email_clean = prof_data.get("email") or normalized
+
+                        # Create local AppUser
+                        user_obj = AppUser(
+                            username=email_clean.split('@')[0],
+                            password_hash=hash_password(password),
+                            full_name=full_name,
+                            role=role,
+                            is_active=True,
+                            email=email_clean,
+                            cloud_uid=cloud_user.id,
+                            created_at=datetime.utcnow()
+                        )
+                        user = self.repo.create_user(user_obj)
+                        _log(f"Restored account from cloud: {email_clean}")
+            except Exception as e:
+                _log(f"Failed to restore cloud user: {e}")
+
         if not user:
             return None
+
         page.client_storage.set(SESSION_USER_ID, int(user.id or 0))
         page.client_storage.set(SESSION_USERNAME, user.username)
 
