@@ -4,7 +4,7 @@ import base64
 import hashlib
 import hmac
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from gmfm_app.data.models import AppUser
@@ -109,7 +109,13 @@ class AuthService:
         # Auto-register to Supabase FIRST to get cloud_uid
         cloud_uid = ""
         if email_clean and self.sync_service:
-            cloud_uid = self._cloud_register(email_clean, password, full_name, role)
+            if self.sync_service.is_online():
+                uid, err_msg = self._cloud_register(email_clean, password, full_name, role)
+                if not uid and err_msg != "Supabase not configured":
+                    raise ValueError(err_msg)
+                cloud_uid = uid
+            else:
+                _log("Offline — skipping immediate cloud registration (will auto-provision later)")
 
         user = AppUser(
             username=normalized,
@@ -119,19 +125,19 @@ class AuthService:
             is_active=True,
             email=email_clean,
             cloud_uid=cloud_uid,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
         )
         created = self.repo.create_user(user)
         _log(f"Created local user: {created.username} (id={created.id}, role={role}, cloud_uid={cloud_uid[:8] if cloud_uid else 'none'})")
         return created
 
     def login(self, page, username: str, password: str) -> Optional[AppUser]:
-        """Login locally and auto-sign-in to Supabase."""
+        """Login locally and auto-provision a Supabase cloud account."""
         normalized = _normalize_username(username)
         user = self.provider.authenticate(normalized, password)
 
-        # Fallback for new devices: if local user is not found, but it looks like an email,
-        # try logging in to Supabase directly to restore the account locally.
+        # Fallback for new devices: if local user is not found but input looks like an
+        # email, try restoring the account from Supabase (cloud → local sync).
         if not user and "@" in normalized and getattr(self, 'sync_service', None):
             try:
                 client = self.sync_service._get_client()
@@ -156,7 +162,7 @@ class AuthService:
                             is_active=True,
                             email=email_clean,
                             cloud_uid=cloud_user.id,
-                            created_at=datetime.utcnow()
+                            created_at=datetime.now(timezone.utc)
                         )
                         user = self.repo.create_user(user_obj)
                         _log(f"Restored account from cloud: {email_clean}")
@@ -169,70 +175,117 @@ class AuthService:
         page.client_storage.set(SESSION_USER_ID, int(user.id or 0))
         page.client_storage.set(SESSION_USERNAME, user.username)
 
-        # Auto-login to Supabase cloud (non-blocking, silent)
-        email = getattr(user, 'email', '')
-        cloud_uid = getattr(user, 'cloud_uid', '')
-        if email and self.sync_service:
-            self._cloud_login(page, email, password, user)
+        # Always attempt cloud provisioning after a successful local login.
+        # If the user has no email on record, derive a synthetic one so they
+        # still get a cloud account and their data syncs automatically.
+        if self.sync_service:
+            email = (getattr(user, 'email', '') or '').strip()
+            if not email:
+                # Generate a deterministic synthetic email for accounts that
+                # were created before email was required.
+                email = f"{user.username}@motormeasure.app"
+                _log(f"No email on file for {user.username} — using synthetic: {email}")
+                # Persist the synthetic email so future logins use it.
+                try:
+                    self.repo.update_email(user.id, email)
+                    user.email = email
+                except Exception as e:
+                    _log(f"Could not persist synthetic email: {e}")
+            self._cloud_provision(page, email, password, user)
 
         _log(f"Login OK: {user.username} (role={user.role})")
         return user
 
-    def _cloud_register(self, email: str, password: str, full_name: str, role: str) -> str:
-        """Register with Supabase Auth. Returns cloud_uid or empty string."""
+    def _cloud_register(self, email: str, password: str, full_name: str, role: str) -> tuple[str, str]:
+        """Register with Supabase Auth. Returns (cloud_uid, error_msg)."""
         try:
             sync = self.sync_service
             if not sync:
-                return ""
+                return "", "Supabase not configured"
 
             # Pass metadata so the trigger creates the profile with role
             ok, msg, uid = sync.register_with_metadata(email, password, full_name, role)
             if ok:
                 _log(f"Cloud register OK: {email} -> {uid[:8]}")
-                return uid
+                return uid, ""
             else:
                 _log(f"Cloud register failed: {msg}")
-                return ""
+                return "", msg
         except Exception as e:
             _log(f"Cloud register error: {e}")
-            return ""
+            return "", str(e)
 
-    def _cloud_login(self, page, email: str, password: str, user: AppUser):
-        """Auto-login to Supabase. Updates cloud_uid if missing."""
-        try:
-            sync = self.sync_service
-            if not sync:
-                return
+    def _cloud_provision(self, page, email: str, password: str, user: AppUser):
+        """Ensure the user has a live Supabase session.
 
-            ok, msg = sync.login(email, password,
-                                 full_name=user.full_name, role=user.role)
-            if ok:
-                # Store cloud_uid if we don't have it yet
-                if not getattr(user, 'cloud_uid', '') and sync._user_id:
-                    self.repo.update_cloud_uid(user.id, sync._user_id)
-                    user.cloud_uid = sync._user_id
-                    _log(f"Stored cloud_uid for {user.username}: {sync._user_id[:8]}")
+        Strategy (runs silently in the background after local login):
+        1. Try signing in with the stored email + password.
+        2. If login fails (wrong creds / account doesn't exist), auto-register.
+        3. If offline, skip silently — sync_worker will retry when online.
+        """
+        import threading
 
-                from gmfm_app.services.sync_config import save_config
-                sync.config.cloud_email = email
-                save_config(page, sync.config)
-            else:
-                # If login fails, try register (first time on new device)
+        def _do_provision():
+            try:
+                sync = self.sync_service
+                if not sync:
+                    return
+
+                # Skip immediately if we already have an active session
+                if sync._user_id:
+                    _log(f"Cloud session already active for {user.username}")
+                    return
+
+                if not sync.is_online():
+                    _log(f"Offline — skipping cloud provision for {user.username}")
+                    return
+
+                # Attempt 1: sign in
+                ok, msg = sync.login(email, password,
+                                     full_name=user.full_name, role=user.role)
+                if ok:
+                    _log(f"Cloud sign-in OK for {user.username} ({email})")
+                    self._finalize_cloud_uid(page, user, sync)
+                    return
+
+                # Attempt 2: auto-register (account doesn't exist on the server yet)
+                _log(f"Cloud sign-in failed ({msg}) — auto-registering {email}...")
                 ok2, msg2, uid = sync.register_with_metadata(
-                    email, password,
-                    user.full_name, user.role
+                    email, password, user.full_name, user.role
                 )
                 if ok2:
-                    self.repo.update_cloud_uid(user.id, uid)
-                    user.cloud_uid = uid
-                    from gmfm_app.services.sync_config import save_config
-                    sync.config.cloud_email = email
-                    save_config(page, sync.config)
-                    _log(f"Auto-registered to cloud: {email}")
+                    _log(f"Auto-registered cloud account for {user.username}: {uid[:8]}")
+                    self._finalize_cloud_uid(page, user, sync)
+                    # Notify on the Flet page (safe: Flet is thread-safe for updates)
+                    try:
+                        page.snack_bar = __import__('flet').SnackBar(
+                            __import__('flet').Text("☁️ Cloud account created automatically!"),
+                            bgcolor="#0D9488",
+                        )
+                        page.snack_bar.open = True
+                        page.update()
+                    except Exception:
+                        pass
                 else:
-                    _log(f"Cloud login/register failed: {msg2}")
+                    _log(f"Cloud provision failed for {user.username}: {msg2}")
+            except Exception as e:
+                _log(f"Cloud provision error for {user.username}: {e}")
+
+        # Run in a daemon thread so login is never blocked by network calls
+        threading.Thread(target=_do_provision, daemon=True).start()
+
+    def _finalize_cloud_uid(self, page, user: AppUser, sync):
+        """Persist cloud_uid and save config after a successful cloud auth."""
+        try:
+            if not getattr(user, 'cloud_uid', '') and sync._user_id:
+                self.repo.update_cloud_uid(user.id, sync._user_id)
+                user.cloud_uid = sync._user_id
+                _log(f"Stored cloud_uid for {user.username}: {sync._user_id[:8]}")
+            from gmfm_app.services.sync_config import save_config
+            sync.config.cloud_email = user.email
+            save_config(page, sync.config)
         except Exception as e:
-            _log(f"Cloud auth error: {e}")
+            _log(f"Could not finalise cloud_uid: {e}")
 
     def current_user(self, page) -> Optional[AppUser]:
         try:

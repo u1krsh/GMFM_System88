@@ -389,6 +389,12 @@ class UserRepository(BaseRepository):
             cur = conn.cursor()
             cur.execute("UPDATE app_users SET cloud_uid = ? WHERE id = ?", (cloud_uid, user_id))
 
+    def update_email(self, user_id: int, email: str) -> None:
+        """Update the email for a local user (e.g. when a synthetic email is assigned)."""
+        with self.db() as conn:  # type: ignore[misc]
+            cur = conn.cursor()
+            cur.execute("UPDATE app_users SET email = ? WHERE id = ?", (email.strip().lower(), user_id))
+
     def list_users(self) -> List[AppUser]:
         """List all users (admin only)."""
         with self.db() as conn:  # type: ignore[misc]

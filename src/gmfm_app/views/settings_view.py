@@ -2,7 +2,7 @@
 Settings View - App Configuration with Cloud Sync
 """
 import flet as ft
-from gmfm_app.data.database import DatabaseContext, db_context
+from gmfm_app.data.database import DatabaseContext
 from gmfm_app.services.haptics import tap, success, warning
 
 
@@ -110,11 +110,42 @@ class SettingsView(ft.View):
     # ── Cloud Sync Card ────────────────────────────────────────────
     def _build_cloud_card(self):
         c = self._c
-        from gmfm_app.services.sync_config import load_config
-        config = load_config(self._page_ref)
 
+        # ── Determine the correct cloud email ──────────────────────
+        # Priority: current logged-in user's email > sync_service config > client_storage.
+        # This prevents stale client_storage values from showing a wrong address.
+        cloud_email = ""
+
+        # 1. Best source: the actual logged-in user record
+        if self.auth_service:
+            try:
+                current_user = self.auth_service.current_user(self._page_ref)
+                if current_user:
+                    cloud_email = (getattr(current_user, 'email', '') or '').strip()
+            except Exception:
+                pass
+
+        # 2. Fallback: live sync_service config (set by _finalize_cloud_uid after login)
+        if not cloud_email and self.sync_service:
+            cloud_email = (self.sync_service.config.cloud_email or '').strip()
+
+        # 3. Last resort: client_storage (may be stale, but better than nothing)
+        if not cloud_email:
+            try:
+                from gmfm_app.services.sync_config import load_config
+                cloud_email = (load_config(self._page_ref).cloud_email or '').strip()
+            except Exception:
+                pass
+
+        # Keep sync_service.config.cloud_email aligned with the current user so
+        # the worker always authenticates with the right address.
+        if cloud_email and self.sync_service and self.sync_service.config.cloud_email != cloud_email:
+            self.sync_service.config.cloud_email = cloud_email
+
+        from gmfm_app.services.sync_config import load_config
+        config = self.sync_service.config if self.sync_service else load_config(self._page_ref)
         is_configured = config.is_configured()
-        cloud_email = config.cloud_email or ""
+
         is_authed = False
         if self.sync_service:
             is_authed = bool(self.sync_service._user_id) or self.sync_service.ensure_auth()
@@ -204,11 +235,25 @@ class SettingsView(ft.View):
                 pass
 
             if not self.sync_service._user_id and not self.sync_service.ensure_auth():
-                print("[SETTINGS] Not authenticated for sync", flush=True)
-                self._snack("Not authenticated. Sign out and log back in to sync.", WARNING_CLR)
+                # Session expired and no in-memory password available.
+                # Show a password prompt so the user can re-authenticate without
+                # having to sign out and back in.
+                print("[SETTINGS] Not authenticated — showing re-auth dialog", flush=True)
+                self._show_reauth_dialog()
                 return
 
-            self._snack("Syncing...", INFO)
+            self._do_sync()
+        except Exception as ex:
+            print(f"[SETTINGS] Sync error: {ex}", flush=True)
+            try:
+                self._snack(f"Sync error: {str(ex)[:80]}", ERROR)
+            except Exception:
+                pass
+
+    def _do_sync(self):
+        """Run a full push+pull cycle and show the result as a snackbar."""
+        try:
+            self._snack("Syncing…", INFO)
             result = self.sync_service.sync()
             if result.success and not result.errors:
                 try:
@@ -222,15 +267,99 @@ class SettingsView(ft.View):
                 first_err = result.errors[0] if result.errors else "Unknown error"
                 self._snack(f"Sync failed: {first_err}", ERROR)
             print(f"[SETTINGS] Sync result: {result.summary}", flush=True)
-            if result.errors:
-                for err in result.errors:
-                    print(f"[SETTINGS] Sync error detail: {err}", flush=True)
+            for err in result.errors:
+                print(f"[SETTINGS] Sync error detail: {err}", flush=True)
         except Exception as ex:
-            print(f"[SETTINGS] Sync error: {ex}", flush=True)
+            print(f"[SETTINGS] _do_sync error: {ex}", flush=True)
+            self._snack(f"Sync error: {str(ex)[:80]}", ERROR)
+
+    def _show_reauth_dialog(self):
+        """Show a password dialog when the cloud session has expired.
+        On success, re-authenticates and immediately runs a sync."""
+        c = self._c
+
+        # Resolve the cloud email to display
+        cloud_email = ""
+        if self.auth_service:
             try:
-                self._snack(f"Sync error: {str(ex)[:80]}", ERROR)
+                cu = self.auth_service.current_user(self._page_ref)
+                if cu:
+                    cloud_email = (getattr(cu, 'email', '') or '').strip()
             except Exception:
                 pass
+        if not cloud_email and self.sync_service:
+            cloud_email = (self.sync_service.config.cloud_email or '').strip()
+
+        pw_field = ft.TextField(
+            label="Cloud Password",
+            password=True,
+            can_reveal_password=True,
+            border_radius=12,
+            bgcolor=c["CARD"],
+            border_color=c["BORDER"],
+            focused_border_color=PRIMARY,
+            color=c["TEXT1"],
+            label_style=ft.TextStyle(color=c["TEXT3"]),
+            autofocus=True,
+        )
+        err_text = ft.Text("", color=ERROR, size=12, visible=False)
+
+        def do_reauth(e):
+            password = (pw_field.value or "").strip()
+            if not password:
+                err_text.value = "Please enter your password"
+                err_text.visible = True
+                try:
+                    dlg.update()
+                except Exception:
+                    pass
+                return
+            if not cloud_email:
+                err_text.value = "No cloud email configured"
+                err_text.visible = True
+                try:
+                    dlg.update()
+                except Exception:
+                    pass
+                return
+
+            ok, msg = self.sync_service.login(cloud_email, password)
+            if ok:
+                self._page_ref.close(dlg)
+                self._do_sync()
+            else:
+                err_text.value = f"Sign-in failed: {msg}"
+                err_text.visible = True
+                try:
+                    dlg.update()
+                except Exception:
+                    pass
+
+        def cancel(e):
+            self._page_ref.close(dlg)
+
+        dlg = ft.AlertDialog(
+            title=ft.Text("Session Expired"),
+            content=ft.Column([
+                ft.Text(
+                    f"Your cloud session for\n{cloud_email}\nhas expired. Re-enter your password to sync.",
+                    size=13, color=c["TEXT2"],
+                ),
+                ft.Container(height=10),
+                pw_field,
+                err_text,
+            ], tight=True, spacing=4),
+            actions=[
+                ft.TextButton("Cancel", on_click=cancel),
+                ft.ElevatedButton(
+                    "Sign In & Sync",
+                    bgcolor=PRIMARY, color="white",
+                    on_click=do_reauth,
+                ),
+            ],
+            on_dismiss=cancel,
+        )
+        self._page_ref.open(dlg)
 
     def _restore_from_cloud(self, e):
         if not self.sync_service:
@@ -337,7 +466,7 @@ class SettingsView(ft.View):
         tap(self._page_ref)
         if self.dark_mode.value:
             self._page_ref.theme_mode = ft.ThemeMode.DARK
-            self._page_ref.bgcolor = "#1A1A2E"
+            self._page_ref.bgcolor = "#0F172A"  # matches Theme.DARK_BG in main.py
         else:
             self._page_ref.theme_mode = ft.ThemeMode.LIGHT
             self._page_ref.bgcolor = "#F8FAFC"
@@ -440,23 +569,33 @@ class SettingsView(ft.View):
 
         def confirm_clear(e):
             warning(self._page_ref)
-            from gmfm_app.data.database import resolve_db_path
+            from gmfm_app.data.database import resolve_db_path, _db_initialized
             import os
             db_path = resolve_db_path()
             if db_path.exists():
                 os.remove(db_path)
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
-            self._snack("All data cleared", SUCCESS_CLR)
-            self._page_ref.go("/")
+            # Clear the init-cache so get_connection() re-runs init_db on next
+            # access (creates a fresh schema rather than hitting missing tables).
+            _db_initialized.discard(str(db_path))
+            self._page_ref.close(dlg)
+            self._snack("All data cleared. Please restart the app.", SUCCESS_CLR)
+            # Sign out — all user accounts are gone with the DB
+            if self.auth_service:
+                try:
+                    self.auth_service.logout(self._page_ref)
+                except Exception:
+                    pass
+            else:
+                try:
+                    from gmfm_app.services.auth_service import SESSION_USER_ID, SESSION_USERNAME
+                    self._page_ref.client_storage.remove(SESSION_USER_ID)
+                    self._page_ref.client_storage.remove(SESSION_USERNAME)
+                except Exception:
+                    pass
+            self._page_ref.go("/login")
 
         def cancel(e):
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
+            self._page_ref.close(dlg)
 
         dlg = ft.AlertDialog(
             title=ft.Text("Clear All Data?"),
@@ -467,9 +606,7 @@ class SettingsView(ft.View):
             ],
             on_dismiss=cancel,
         )
-        self._page_ref.overlay.append(dlg)
-        dlg.open = True
-        self._page_ref.update()
+        self._page_ref.open(dlg)
 
     def _sign_out(self, e):
         warning(self._page_ref)

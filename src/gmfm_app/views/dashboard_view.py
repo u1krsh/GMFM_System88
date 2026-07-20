@@ -7,26 +7,10 @@ from gmfm_app.data.database import DatabaseContext
 from gmfm_app.data.repositories import StudentRepository, SessionRepository
 from gmfm_app.services.haptics import tap, select, success, warning
 from gmfm_app.services.docx_import_service import parse_docx, import_assessment_to_db
-
-
-def get_colors(is_dark):
-    if is_dark:
-        return {
-            "BG": "#0F172A", "CARD": "#1E293B", "BORDER": "#334155",
-            "TEXT1": "#F8FAFC", "TEXT2": "#94A3B8", "TEXT3": "#64748B"
-        }
-    return {
-        "BG": "#F8FAFC", "CARD": "#FFFFFF", "BORDER": "#E2E8F0",
-        "TEXT1": "#1E293B", "TEXT2": "#64748B", "TEXT3": "#94A3B8"
-    }
-
-
-PRIMARY = "#0D9488"
-SECONDARY = "#7C3AED"
-SUCCESS = "#10B981"
-WARNING = "#F59E0B"
-ERROR = "#EF4444"
-INFO = "#3B82F6"
+from gmfm_app.theme import (
+    get_colors,
+    PRIMARY, SECONDARY, SUCCESS, WARNING, ERROR, INFO,
+)
 
 
 def get_greeting(display_name: str | None = None):
@@ -53,13 +37,17 @@ class DashboardView(ft.View):
         self.repo = StudentRepository(db_context, user_id=user_id)
         self.session_repo = SessionRepository(db_context, user_id=user_id)
         self.c = c
+        self._user_id = user_id  # stored so DOCX import uses the real logged-in user
         self.search_term = ""  # For search highlighting
 
         display_name = None
+        self.is_read_only = False
         if current_user is not None:
             full_name = (getattr(current_user, "full_name", "") or "").strip()
             username = (getattr(current_user, "username", "") or "").strip()
             display_name = full_name.split(" ")[0] if full_name else username
+            if getattr(current_user, "role", "teacher") == "parent":
+                self.is_read_only = True
 
         # Header with search
         self.search = ft.TextField(
@@ -127,14 +115,16 @@ class DashboardView(ft.View):
             padding=ft.padding.symmetric(horizontal=20, vertical=12),
         )
 
-        # Quick Actions
-        actions = ft.Container(
-            content=ft.Row([
-                self._action("person_add", "New Student", PRIMARY, lambda _: self._page_ref.go("/student")),
-                self._action("file_upload", "Import DOCX", SECONDARY, self._import_docx),
-            ], spacing=10),
-            padding=ft.padding.symmetric(horizontal=20, vertical=5),
-        )
+        # Quick Actions (hidden for parents)
+        actions = None
+        if not self.is_read_only:
+            actions = ft.Container(
+                content=ft.Row([
+                    self._action("person_add", "New Student", PRIMARY, lambda _: self._page_ref.go("/student")),
+                    self._action("file_upload", "Import DOCX", SECONDARY, self._import_docx),
+                ], spacing=10),
+                padding=ft.padding.symmetric(horizontal=20, vertical=5),
+            )
 
         # Recent Activity Section
         self.recent_list = ft.Column(spacing=8)
@@ -153,13 +143,12 @@ class DashboardView(ft.View):
         # Tip of the day
         tip_card = self._build_tip_card()
 
-        # Students Section
         self.student_list = ft.Column(spacing=8)
 
         self.controls = [
             header,
             stats_row,
-            actions,
+            actions if actions else ft.Container(),
             recent_section,
             tip_card,
             ft.Container(
@@ -404,13 +393,18 @@ class DashboardView(ft.View):
         c = self.c
         
         if not students:
+            empty_controls = [
+                ft.Icon("person_search", size=60, color=c["TEXT3"]),
+                ft.Text("No students found", size=16, color=c["TEXT2"]),
+            ]
+            if not self.is_read_only:
+                empty_controls.append(
+                    ft.TextButton("Add New Student", on_click=lambda _: self._page_ref.go("/student"))
+                )
+                
             self.student_list.controls.append(
                 ft.Container(
-                    content=ft.Column([
-                        ft.Icon("person_search", size=60, color=c["TEXT3"]),
-                        ft.Text("No students found", size=16, color=c["TEXT2"]),
-                        ft.TextButton("Add New Student", on_click=lambda _: self._page_ref.go("/student")),
-                    ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+                    content=ft.Column(empty_controls, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
                     alignment=ft.alignment.center,
                     padding=50,
                 )
@@ -431,7 +425,11 @@ class DashboardView(ft.View):
                     ft.Container(
                         content=ft.Row([
                             ft.Container(
-                                content=ft.Text(f"{s.given_name[0]}{s.family_name[0]}".upper(), size=14, weight=ft.FontWeight.BOLD, color="white"),
+                                content=ft.Text(
+                                    # Guard against empty name parts to avoid IndexError
+                                    f"{(s.given_name[:1] or '?')}{(s.family_name[:1] or '?')}".upper(),
+                                    size=14, weight=ft.FontWeight.BOLD, color="white"
+                                ),
                                 width=42, height=42,
                                 bgcolor=PRIMARY,
                                 border_radius=12,
@@ -445,16 +443,19 @@ class DashboardView(ft.View):
                                     ft.Text(last_score, size=10, weight=ft.FontWeight.BOLD, color=score_color),
                                 ], spacing=3),
                             ], expand=True, spacing=1),
+                            # Action buttons
+                            *([] if self.is_read_only else [
+                                ft.Container(
+                                    content=ft.Icon("play_arrow", color="white", size=18),
+                                    width=36, height=36,
+                                    bgcolor=SUCCESS if has_session else PRIMARY,
+                                    border_radius=10,
+                                    alignment=ft.alignment.center,
+                                    on_click=lambda _, sid=s.id, sess_id=latest.id if latest else None: self._start_scoring(sid, sess_id),
+                                )
+                            ]),
                             ft.Container(
-                                content=ft.Icon("play_arrow", color="white", size=18),
-                                width=36, height=36,
-                                bgcolor=SUCCESS if has_session else PRIMARY,
-                                border_radius=10,
-                                alignment=ft.alignment.center,
-                                on_click=lambda _, sid=s.id, sess_id=latest.id if latest else None: self._start_scoring(sid, sess_id),
-                            ),
-                            ft.Container(
-                                content=ft.Icon("edit", color=c["TEXT3"], size=18),
+                                content=ft.Icon("person" if self.is_read_only else "edit", color=c["TEXT3"], size=18),
                                 width=36, height=36,
                                 border_radius=10,
                                 alignment=ft.alignment.center,

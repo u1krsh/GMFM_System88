@@ -67,7 +67,10 @@ class LoginView(ft.View):
         # ── Form ───────────────────────────────────────────────────
         self.full_name = self._field("Full Name", "badge")
         self.email = self._field("Email", "email", keyboard=ft.KeyboardType.EMAIL)
-        self.username = self._field("Username or Email", "person_outline", autofocus=True)
+        
+        username_label = "Username" if self._register_mode else "Username or Email"
+        self.username = self._field(username_label, "person_outline", autofocus=True)
+        
         self.password = self._field("Password", "lock_outline", password=True,
                                     on_submit=self._submit)
         self.confirm_pw = self._field("Confirm Password", "lock_outline", password=True,

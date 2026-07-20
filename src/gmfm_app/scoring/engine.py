@@ -12,6 +12,8 @@ from gmfm_app.scoring.constants import GMFM88_ITEMS, MAX_ITEM_SCORE
 
 def _score_domain(item_ids: Iterable[int], raw_scores: Dict[int, int]) -> Tuple[float, int]:
     """Return (percent, n_items) for given domain."""
+    # Materialise once so the iterator is never exhausted before the len() fallback
+    item_ids = list(item_ids)
     if not item_ids:
         return 0.0, 0
     total = 0
@@ -24,7 +26,7 @@ def _score_domain(item_ids: Iterable[int], raw_scores: Dict[int, int]) -> Tuple[
             total += val
             count += 1
     if count == 0:
-        return 0.0, len(list(item_ids))
+        return 0.0, len(item_ids)
     max_possible = count * MAX_ITEM_SCORE
     percent = (total / max_possible) * 100.0
     return percent, count

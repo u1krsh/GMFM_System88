@@ -51,22 +51,26 @@ class SyncWorker:
 
         while self._running:
             try:
-                pending = self.sync_service.get_pending_count()
-                if pending > 0 and self.sync_service.is_online():
-                    # Try to ensure we're authenticated
-                    authed = self.sync_service.ensure_auth()
-                    if not authed:
-                        # Try re-login with stored email
-                        email = self.sync_service.config.cloud_email
-                        if email:
-                            _log(f"Re-authenticating as {email}...")
-                            # Can't re-login without password in worker
-                            # But registration already logged in — session should persist
-                            pass
-                    if self.sync_service._user_id:
-                        _log(f"Auto-syncing {pending} pending items...")
-                        result = self.sync_service.sync()
-                        _log(f"Auto-sync result: {result.summary}")
+                is_online = self.sync_service.is_online()
+                if not is_online:
+                    _log("Offline — skipping sync cycle")
+                else:
+                    pending = self.sync_service.get_pending_count()
+
+                    # Always try to maintain authentication when online
+                    authed = self.sync_service._user_id is not None or self.sync_service.ensure_auth()
+
+                    if authed:
+                        if pending > 0:
+                            _log(f"Auto-syncing {pending} pending items...")
+                            result = self.sync_service.sync()
+                            _log(f"Auto-sync result: {result.summary}")
+                        else:
+                            # No pending pushes — still pull to get remote changes
+                            result = self.sync_service.pull()
+                            if result.pulled > 0:
+                                _log(f"Pull-only sync: pulled {result.pulled}")
+
                         if self.on_sync_complete:
                             try:
                                 self.on_sync_complete(result)

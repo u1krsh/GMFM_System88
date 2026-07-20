@@ -45,14 +45,20 @@ class SyncResult:
 class SyncService:
     """Offline-first sync engine using Supabase as cloud backend."""
 
+    # Sentinel: marks that the last Supabase client-init attempt failed so we
+    # don't hammer the network/import on every call.
+    _INIT_FAILED = object()
+
     def __init__(self, db_context: DatabaseContext, config: SyncConfig):
         self.db_context = db_context
         self.config = config
-        self._client = None
+        self._client = None  # None = not yet tried; _INIT_FAILED = tried & failed
         self._user_id: Optional[str] = None  # Supabase UUID
 
     def _get_client(self):
-        """Lazy-init Supabase client. Reuses existing client."""
+        """Lazy-init Supabase client. Reuses existing client. Returns None on failure."""
+        if self._client is self._INIT_FAILED:
+            return None
         if self._client is None and self.config.is_configured():
             try:
                 from supabase import create_client
@@ -65,9 +71,11 @@ class SyncService:
                 try:
                     with open(log_path, "a") as f:
                         f.write(f"Supabase Boot Error: {e}\n{traceback.format_exc()}\n")
-                except: pass
+                except Exception:
+                    pass
                 _log(f"Supabase client error: {e}")
-        return self._client
+                self._client = self._INIT_FAILED
+        return self._client if self._client is not self._INIT_FAILED else None
 
     def is_online(self) -> bool:
         # Try Supabase host first (the server we actually need)
@@ -151,6 +159,9 @@ class SyncService:
             if user:
                 self._user_id = user.id
                 self.config.cloud_email = email
+                # Store password in-memory so the sync worker can re-auth after
+                # session expiry without asking the user again.
+                self.config.cloud_password = password
                 _log(f"Cloud login OK: {email} (uid={user.id[:8]})")
 
                 # Store refresh token for session persistence across restarts
@@ -245,7 +256,7 @@ class SyncService:
             pass
 
     def ensure_auth(self) -> bool:
-        """Check/restore Supabase session. Uses stored refresh token if needed."""
+        """Check/restore Supabase session. Uses stored refresh token or password if needed."""
         if self._user_id:
             return True
         client = self._get_client()
@@ -281,8 +292,36 @@ class SyncService:
                     _log(f"Session restored from refresh token: {user.id[:8]}")
                     return True
             except Exception as e:
-                _log(f"Refresh token expired: {e}")
-                self._clear_refresh_token()
+                err_msg = str(e).lower()
+                err_type = type(e).__name__.lower()
+                # Only delete the refresh token if it's a genuine AUTH rejection
+                # (not a network/DNS failure — we want to retry when back online).
+                is_auth_error = (
+                    "invalid" in err_msg
+                    or "expired" in err_msg
+                    or "not found" in err_msg
+                    or "unauthorized" in err_msg
+                    or "authapi" in err_type
+                    or "401" in err_msg
+                )
+                if is_auth_error:
+                    _log(f"Refresh token rejected by server — clearing: {e}")
+                    self._clear_refresh_token()
+                else:
+                    # Network/DNS error — keep token and retry next time
+                    _log(f"Refresh token network error (will retry when online): {e}")
+                    return False
+
+        # Last resort: try silent re-login using in-memory password
+        email = self.config.cloud_email
+        password = getattr(self.config, 'cloud_password', '')
+        if email and password:
+            _log(f"Attempting silent re-login for {email}...")
+            ok, msg = self.login(email, password)
+            if ok:
+                _log(f"Silent re-login succeeded for {email}")
+                return True
+            _log(f"Silent re-login failed: {msg}")
 
         return False
 
@@ -294,7 +333,10 @@ class SyncService:
             except Exception:
                 pass
         self._user_id = None
+        # Reset to None (not _INIT_FAILED) so the next login attempt re-uses the
+        # existing client or re-creates it cleanly.
         self._client = None
+        self.config.cloud_password = ""
         self._clear_refresh_token()
 
     # ── Push (local -> cloud) ──────────────────────────────────────
@@ -334,12 +376,14 @@ class SyncService:
 
                     try:
                         if operation == "DELETE":
+                            # Only send the minimal tombstone — a delete queue entry
+                            # may have no full payload, so _cloud_payload() must not
+                            # be called here to avoid sending incomplete data.
                             client.table(table).upsert({
                                 "local_id": record_id,
                                 "created_by": self._user_id,
                                 "deleted": True,
                                 "updated_at": datetime.utcnow().isoformat(),
-                                **self._cloud_payload(table, payload),
                             }, on_conflict="created_by,local_id").execute()
                         else:
                             cloud_data = {
@@ -412,9 +456,26 @@ class SyncService:
         try:
             last_pull = self._get_last_pull()
 
+            # Determine the user's role locally to know if they get global read access
+            user_role = "teacher"
+            try:
+                with self.db_context.connect() as conn:
+                    cur = conn.cursor()
+                    cur.execute("SELECT role FROM app_users WHERE cloud_uid = ?", (self._user_id,))
+                    row = cur.fetchone()
+                    if row:
+                        user_role = row[0]
+            except Exception as e:
+                _log(f"Failed to fetch role for pull scoping: {e}")
+
             for table in ("students", "sessions"):
                 try:
-                    query = client.table(table).select("*").eq("created_by", self._user_id)
+                    query = client.table(table).select("*")
+                    # Parents get global read access (pull all students).
+                    # Teachers only pull students they created.
+                    if user_role != "parent":
+                        query = query.eq("created_by", self._user_id)
+                        
                     if last_pull:
                         query = query.gt("updated_at", last_pull)
                     response = query.execute()

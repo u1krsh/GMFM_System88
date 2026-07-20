@@ -34,7 +34,7 @@ import flet as ft
 
 
 def _make_error_view(route: str, error_msg: str, stack_trace: str = "") -> ft.View:
-    """Create an error View (works with views-based routingx)."""
+    """Create an error View (works with views-based routing)."""
     return ft.View(
         route=route,
         bgcolor="#FEE2E2",
@@ -289,13 +289,20 @@ class GMFMApp:
             try:
                 current = self.auth_service.current_user(self.page)
                 if current and self.sync_service:
-                    email = getattr(current, 'email', '')
-                    if email:
-                        # Try to restore session — user will need to re-login if this fails
+                    user_email = (getattr(current, 'email', '') or '').strip()
+                    if user_email:
+                        # Always align sync_config with the actual logged-in user's email,
+                        # overwriting any stale address from a previous session in client_storage.
+                        if self.sync_service.config.cloud_email != user_email:
+                            _log(f"Aligning sync email: '{self.sync_service.config.cloud_email}' -> '{user_email}'")
+                            self.sync_service.config.cloud_email = user_email
+                            from gmfm_app.services.sync_config import save_config
+                            save_config(self.page, self.sync_service.config)
+
                         if not self.sync_service.ensure_auth():
-                            _log(f"Session expired for {email}. Will re-auth on next login.")
+                            _log(f"Session expired for {user_email}. Will re-auth on next login.")
                         else:
-                            _log(f"Restored cloud session for {email}")
+                            _log(f"Restored cloud session for {user_email}")
             except Exception as e:
                 _log(f"Cloud re-auth check skipped: {e}")
 
@@ -370,42 +377,45 @@ class GMFMApp:
 
             # Parent: dashboard + session detail (read-only)
             if user_role == "parent":
-                allowed = route == "/" or route.startswith("/session") or route.startswith("/history")
+                allowed = route == "/" or route.startswith("/session") or route.startswith("/history") or route.startswith("/student") or route.startswith("/settings")
                 if not allowed:
                     return self._access_denied_view(route, "Parents can view progress but cannot create or modify data")
+
+            # Determine data scope. Parents get global read access to all students.
+            scope_user_id = None if user_role == "parent" else user_id
 
             # ── Build views ────────────────────────────────────────
             if route == "/":
                 return DashboardView(self.page, self.db_context, is_dark,
-                                     current_user=current_user, user_id=user_id)
+                                     current_user=current_user, user_id=scope_user_id)
             elif route.startswith("/student"):
                 pid = self._param_from_route(route, "id")
                 return StudentView(self.page, self.db_context, is_dark,
-                                   int(pid) if pid else None, user_id=user_id)
+                                   int(pid) if pid else None, user_id=scope_user_id, current_user=current_user)
             elif route == "/settings":
                 return SettingsView(self.page, self.db_context, is_dark,
                                    auth_service=self.auth_service,
-                                   sync_service=self.sync_service, user_id=user_id)
+                                   sync_service=self.sync_service, user_id=scope_user_id)
             elif route.startswith("/scoring"):
                 pid = self._param_from_route(route, "student_id")
                 sid = self._param_from_route(route, "session_id")
                 scale = self._param_from_route(route, "scale") or "88"
                 if pid:
                     return ScoringView(self.page, self.db_context, int(pid),
-                                       int(sid) if sid else None, is_dark, scale, user_id=user_id)
+                                       int(sid) if sid else None, is_dark, scale, user_id=scope_user_id)
             elif route.startswith("/history"):
                 pid = self._param_from_route(route, "student_id")
                 if pid:
-                    return SessionHistoryView(self.page, self.db_context, int(pid), is_dark, user_id=user_id)
+                    return SessionHistoryView(self.page, self.db_context, int(pid), is_dark, user_id=scope_user_id)
             elif route.startswith("/compare"):
                 s1 = self._param_from_route(route, "session1")
                 s2 = self._param_from_route(route, "session2")
                 if s1 and s2:
-                    return CompareView(self.page, self.db_context, int(s1), int(s2), is_dark, user_id=user_id)
+                    return CompareView(self.page, self.db_context, int(s1), int(s2), is_dark, user_id=scope_user_id)
             elif route.startswith("/session"):
                 sid = self._param_from_route(route, "session_id")
                 if sid:
-                    return SessionDetailView(self.page, self.db_context, int(sid), is_dark, user_id=user_id)
+                    return SessionDetailView(self.page, self.db_context, int(sid), is_dark, user_id=scope_user_id)
             return None
         except Exception as e:
             return _make_error_view(route, f"View error ({route}): {e}", traceback.format_exc())
@@ -460,7 +470,7 @@ class GMFMApp:
         """Extract a parameter from a route string."""
         try:
             return dict(p.split("=") for p in route.split("?")[1].split("&")).get(key)
-        except:
+        except Exception:
             return None
 
     def _handle_route(self, is_back=False):
@@ -561,7 +571,7 @@ class GMFMApp:
     def _param(self, key):
         try:
             return dict(p.split("=") for p in self.page.route.split("?")[1].split("&")).get(key)
-        except:
+        except Exception:
             return None
 
 

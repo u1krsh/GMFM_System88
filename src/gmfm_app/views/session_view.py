@@ -7,27 +7,11 @@ from gmfm_app.data.database import DatabaseContext
 from gmfm_app.data.repositories import SessionRepository, StudentRepository
 from gmfm_app.scoring.engine import calculate_gmfm_scores
 from gmfm_app.services.report_service import generate_report
-
-
-def get_colors(is_dark):
-    if is_dark:
-        return {
-            "BG": "#0F172A", "CARD": "#1E293B", "BORDER": "#334155",
-            "TEXT1": "#F8FAFC", "TEXT2": "#94A3B8", "TEXT3": "#64748B"
-        }
-    return {
-        "BG": "#F8FAFC", "CARD": "#FFFFFF", "BORDER": "#E2E8F0",
-        "TEXT1": "#1E293B", "TEXT2": "#64748B", "TEXT3": "#94A3B8"
-    }
-
-
-PRIMARY = "#0D9488"
-SUCCESS = "#10B981"
-WARNING = "#F59E0B"
-ERROR = "#EF4444"
-DOMAIN_COLORS = {"A": "#EF4444", "B": "#F59E0B", "C": "#10B981", "D": "#3B82F6", "E": "#8B5CF6"}
-DOMAIN_ICONS = {"A": "hotel", "B": "weekend", "C": "child_care", "D": "accessibility_new", "E": "directions_run"}
-DOMAIN_NAMES = {"A": "Lying & Rolling", "B": "Sitting", "C": "Crawling & Kneeling", "D": "Standing", "E": "Walking & Running"}
+from gmfm_app.theme import (
+    get_colors,
+    PRIMARY, SUCCESS, WARNING, ERROR,
+    DOMAIN_COLORS, DOMAIN_ICONS, DOMAIN_NAMES,
+)
 
 
 class SessionHistoryView(ft.View):
@@ -136,18 +120,12 @@ class SessionHistoryView(ft.View):
     def _confirm_delete(self, session_id):
         def do_delete(e):
             self.repo.delete_session(session_id)
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
+            self._page_ref.close(dlg)
             self._page_ref.go(f"/history?student_id={self.student_id}")
-        
+
         def cancel(e):
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
-        
+            self._page_ref.close(dlg)
+
         dlg = ft.AlertDialog(
             title=ft.Text("Delete Assessment?"),
             content=ft.Text("This cannot be undone."),
@@ -157,9 +135,7 @@ class SessionHistoryView(ft.View):
             ],
             on_dismiss=cancel,
         )
-        self._page_ref.overlay.append(dlg)
-        dlg.open = True
-        self._page_ref.update()
+        self._page_ref.open(dlg)
 
     def _show_scale_dialog(self):
         """Start a new GMFM-88 assessment directly."""
@@ -383,29 +359,28 @@ class SessionDetailView(ft.View):
             return
         
         def select_session(e, sid):
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
+            self._page_ref.close(dlg)
             self._page_ref.go(f"/compare?session1={self.session_id}&session2={sid}")
-        
-        def close_dlg(e):
-            dlg.open = False
-            if dlg in self._page_ref.overlay:
-                self._page_ref.overlay.remove(dlg)
-            self._page_ref.update()
 
-        options = [ft.ListTile(title=ft.Text(f"GMFM-{s.scale} - {s.total_score:.0f}%"), subtitle=ft.Text(s.created_at.strftime("%b %d, %Y")), on_click=lambda e, sid=s.id: select_session(e, sid)) for s in other_sessions[:5]]
-        
+        def close_dlg(e):
+            self._page_ref.close(dlg)
+
+        options = [
+            ft.ListTile(
+                title=ft.Text(f"GMFM-{s.scale} - {s.total_score:.0f}%" if s.total_score is not None else f"GMFM-{s.scale} - N/A"),
+                subtitle=ft.Text(s.created_at.strftime("%b %d, %Y")),
+                on_click=lambda e, sid=s.id: select_session(e, sid),
+            )
+            for s in other_sessions[:5]
+        ]
+
         dlg = ft.AlertDialog(
             title=ft.Text("Compare with..."),
             content=ft.Column(options, tight=True),
             actions=[ft.TextButton("Cancel", on_click=close_dlg)],
             on_dismiss=close_dlg,
         )
-        self._page_ref.overlay.append(dlg)
-        dlg.open = True
-        self._page_ref.update()
+        self._page_ref.open(dlg)
 
     def _export_pdf(self, e):
         if not self.session or not self.student:

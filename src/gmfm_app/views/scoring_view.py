@@ -11,27 +11,11 @@ from gmfm_app.scoring.items_catalog import get_domains
 from gmfm_app.scoring.engine import calculate_gmfm_scores
 from gmfm_app.services.haptics import select, success, heavy, warning
 from gmfm_app.services.instructions_service import get_instruction
-
-
-def get_colors(is_dark):
-    if is_dark:
-        return {
-            "BG": "#0F172A", "CARD": "#1E293B", "BORDER": "#334155",
-            "TEXT1": "#F8FAFC", "TEXT2": "#94A3B8", "TEXT3": "#64748B"
-        }
-    return {
-        "BG": "#F8FAFC", "CARD": "#FFFFFF", "BORDER": "#E2E8F0",
-        "TEXT1": "#1E293B", "TEXT2": "#64748B", "TEXT3": "#94A3B8"
-    }
-
-
-PRIMARY = "#0D9488"
-SUCCESS = "#10B981"
-WARNING = "#F59E0B"
-ERROR = "#EF4444"
-DOMAIN_COLORS = {"A": "#EF4444", "B": "#F59E0B", "C": "#10B981", "D": "#3B82F6", "E": "#8B5CF6"}
-DOMAIN_ICONS = {"A": "hotel", "B": "weekend", "C": "child_care", "D": "accessibility_new", "E": "directions_run"}
-DOMAIN_NAMES = {"A": "Lying & Rolling", "B": "Sitting", "C": "Crawling & Kneeling", "D": "Standing", "E": "Walking & Running"}
+from gmfm_app.theme import (
+    get_colors,
+    PRIMARY, SUCCESS, WARNING, ERROR,
+    DOMAIN_COLORS, DOMAIN_ICONS, DOMAIN_NAMES,
+)
 
 
 class ScoringView(ft.View):
@@ -42,17 +26,17 @@ class ScoringView(ft.View):
         self.db_context = db_context
         self.student_id = student_id
         self.session_id = session_id
-        self.scale = "88"  # Always GMFM-88
+        self.scale = scale  # Use the provided scale; may be overridden by existing session below
         self.student_repo = StudentRepository(db_context, user_id=user_id)
         self.session_repo = SessionRepository(db_context, user_id=user_id)
         self.scores = {}
         self.score_buttons = {}
         self.c = c
         self.is_dark = is_dark
-        
-        # Timer
+
+        # Timer — use an Event so any navigation path can reliably stop the thread
         self.start_time = time.time()
-        self.timer_running = True
+        self._timer_stop = threading.Event()
 
         student = self.student_repo.get_student(student_id)
         self.student_name = f"{student.given_name} {student.family_name}" if student else "Student"
@@ -153,20 +137,21 @@ class ScoringView(ft.View):
         self._start_timer()
 
     def _go_back(self, e):
-        self.timer_running = False
+        self._timer_stop.set()  # Stop the timer thread on back navigation
         self._page_ref.go("/")
 
     def _start_timer(self):
         def update_timer():
-            while self.timer_running:
+            # wait(1) blocks for 1 s and returns True if the event was set
+            while not self._timer_stop.wait(1):
                 elapsed = int(time.time() - self.start_time)
                 mins, secs = divmod(elapsed, 60)
                 try:
                     self.timer_text.value = f"{mins}:{secs:02d}"
                     self.timer_text.update()
-                except:
+                except Exception:
+                    # Widget likely no longer in the tree — stop silently
                     break
-                time.sleep(1)
         thread = threading.Thread(target=update_timer, daemon=True)
         thread.start()
 
@@ -529,7 +514,7 @@ class ScoringView(ft.View):
 
     def _save(self, e):
         try:
-            self.timer_running = False
+            self._timer_stop.set()  # Stop the timer thread on save
             elapsed = int(time.time() - self.start_time)
             mins, secs = divmod(elapsed, 60)
 

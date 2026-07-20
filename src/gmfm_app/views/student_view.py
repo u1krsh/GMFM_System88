@@ -7,32 +7,15 @@ from gmfm_app.data.database import DatabaseContext
 from gmfm_app.data.repositories import StudentRepository, SessionRepository
 from gmfm_app.data.models import Student
 from gmfm_app.services.haptics import tap, success, warning
-
-
-def get_colors(is_dark):
-    if is_dark:
-        return {
-            "BG": "#0F172A", "CARD": "#1E293B", "BORDER": "#334155",
-            "TEXT1": "#F8FAFC", "TEXT2": "#94A3B8", "TEXT3": "#64748B"
-        }
-    return {
-        "BG": "#F8FAFC", "CARD": "#FFFFFF", "BORDER": "#E2E8F0",
-        "TEXT1": "#1E293B", "TEXT2": "#64748B", "TEXT3": "#94A3B8"
-    }
-
-
-PRIMARY = "#0D9488"
-SUCCESS = "#10B981"
-WARNING = "#F59E0B"
-ERROR = "#EF4444"
+from gmfm_app.theme import get_colors, PRIMARY, SUCCESS, WARNING, ERROR
 
 
 class StudentView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None, user_id=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None, user_id=None, current_user=None):
         c = get_colors(is_dark)
         route = f"/student?id={student_id}" if student_id else "/student"
         super().__init__(route=route, padding=0, bgcolor=c["BG"])
-        self.page = page
+        self._page_ref = page  # consistent naming with all other views
         self.db_context = db_context
         self.repo = StudentRepository(db_context, user_id=user_id)
         self.session_repo = SessionRepository(db_context, user_id=user_id)
@@ -40,19 +23,20 @@ class StudentView(ft.View):
         self.c = c
         self.is_edit = student_id is not None
         self.existing_student = None
+        self.is_read_only = getattr(current_user, 'role', 'teacher') == 'parent'
 
         # Load existing student data if editing
         if self.is_edit:
             self.existing_student = self.repo.get_student(student_id)
 
         # Header
-        title = "Edit Student" if self.is_edit else "New Student"
+        title = "Student Profile" if self.is_read_only else ("Edit Student" if self.is_edit else "New Student")
         header = ft.SafeArea(
             content=ft.Container(
                 content=ft.Row([
-                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self.page.go("/")),
+                    ft.IconButton("arrow_back", icon_color=c["TEXT1"], on_click=lambda _: self._page_ref.go("/")),
                     ft.Text(title, size=20, weight=ft.FontWeight.BOLD, color=c["TEXT1"], expand=True),
-                    ft.IconButton("delete", icon_color=ERROR, on_click=self._confirm_delete) if self.is_edit else ft.Container(),
+                    ft.IconButton("delete", icon_color=ERROR, on_click=self._confirm_delete) if (self.is_edit and not self.is_read_only) else ft.Container(),
                 ]),
                 padding=ft.padding.symmetric(horizontal=15, vertical=10),
                 bgcolor=c["CARD"],
@@ -101,7 +85,7 @@ class StudentView(ft.View):
                         ft.Icon("calendar_today", color=PRIMARY, size=22),
                         ft.Container(width=12),
                         ft.Column([ft.Text("Date of Birth", size=12, color=c["TEXT2"]), self.dob_text], spacing=2, expand=True),
-                        ft.IconButton("edit", icon_color=PRIMARY, on_click=lambda _: self.page.open(self.dob_picker)),
+                        ft.IconButton("edit", icon_color=PRIMARY, on_click=lambda _: self._page_ref.open(self.dob_picker)) if not self.is_read_only else ft.Container(),
                     ]),
                     padding=14,
                     bgcolor=c["CARD"],
@@ -117,7 +101,7 @@ class StudentView(ft.View):
                     width=200,
                     height=48,
                     on_click=self._save,
-                ),
+                ) if not self.is_read_only else ft.Container(),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             padding=30,
             bgcolor=c["CARD"],
@@ -141,6 +125,7 @@ class StudentView(ft.View):
             color=c["TEXT1"],
             label_style=ft.TextStyle(color=c["TEXT2"]),
             height=55,
+            read_only=self.is_read_only,
         )
 
     def _set_dob(self, e):
@@ -160,20 +145,14 @@ class StudentView(ft.View):
                 self.session_repo.delete_session(s.id)
             # Delete student
             self.repo.delete_student(self.student_id)
-            dlg.open = False
-            if dlg in self.page.overlay:
-                self.page.overlay.remove(dlg)
-            self.page.update()
-            self.page.snack_bar = ft.SnackBar(ft.Text("Student deleted"), bgcolor=WARNING)
-            self.page.snack_bar.open = True
-            self.page.go("/")
-        
+            self._page_ref.close(dlg)
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text("Student deleted"), bgcolor=WARNING)
+            self._page_ref.snack_bar.open = True
+            self._page_ref.go("/")
+
         def cancel(e):
-            dlg.open = False
-            if dlg in self.page.overlay:
-                self.page.overlay.remove(dlg)
-            self.page.update()
-        
+            self._page_ref.close(dlg)
+
         dlg = ft.AlertDialog(
             title=ft.Text("Delete Student?"),
             content=ft.Text("This will delete all assessments for this student. This cannot be undone."),
@@ -183,20 +162,18 @@ class StudentView(ft.View):
             ],
             on_dismiss=cancel,
         )
-        self.page.overlay.append(dlg)
-        dlg.open = True
-        self.page.update()
+        self._page_ref.open(dlg)
 
     def _save(self, e):
         if not self.given_name.value or not self.family_name.value:
-            warning(self.page)  # Warning haptic for validation error
-            self.page.snack_bar = ft.SnackBar(ft.Text("Please fill name fields"), bgcolor=ERROR)
-            self.page.snack_bar.open = True
-            self.page.update()
+            warning(self._page_ref)  # Warning haptic for validation error
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text("Please fill name fields"), bgcolor=ERROR)
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
             return
 
         try:
-            success(self.page)  # Success haptic
+            success(self._page_ref)  # Success haptic
             if self.is_edit and self.existing_student:
                 # Update existing
                 self.existing_student.given_name = self.given_name.value
@@ -204,7 +181,7 @@ class StudentView(ft.View):
                 self.existing_student.identifier = self.identifier.value
                 self.existing_student.dob = self.selected_dob
                 self.repo.update_student(self.existing_student)
-                self.page.snack_bar = ft.SnackBar(ft.Text("Student updated!"), bgcolor=SUCCESS)
+                self._page_ref.snack_bar = ft.SnackBar(ft.Text("Student updated!"), bgcolor=SUCCESS)
             else:
                 # Create new
                 student = Student(
@@ -214,12 +191,12 @@ class StudentView(ft.View):
                     dob=self.selected_dob
                 )
                 self.repo.create_student(student)
-                self.page.snack_bar = ft.SnackBar(ft.Text("Student saved!"), bgcolor=SUCCESS)
-            
-            self.page.snack_bar.open = True
-            self.page.update()
-            self.page.go("/")
+                self._page_ref.snack_bar = ft.SnackBar(ft.Text("Student saved!"), bgcolor=SUCCESS)
+
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
+            self._page_ref.go("/")
         except Exception as ex:
-            self.page.snack_bar = ft.SnackBar(ft.Text(f"Error: {ex}"), bgcolor=ERROR)
-            self.page.snack_bar.open = True
-            self.page.update()
+            self._page_ref.snack_bar = ft.SnackBar(ft.Text(f"Error: {ex}"), bgcolor=ERROR)
+            self._page_ref.snack_bar.open = True
+            self._page_ref.update()
