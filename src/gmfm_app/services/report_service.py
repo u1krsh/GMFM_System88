@@ -113,7 +113,7 @@ def _generate_fpdf2(
     pdf.ln(2)
 
     domains = scoring_result.get("domains", {})
-    col_w = [70, 40, 40]
+    col_w = [110, 40, 40]
     total_w = sum(col_w)
 
     # Table header
@@ -390,7 +390,7 @@ def _generate_raw_pdf(
     pg.text_line("Domain Summary", 12, bold=True)
     pg.spacer(2)
 
-    sum_cols = [220, 100, 100]  # Domain | % Score | Items
+    sum_cols = [280, 100, 100]  # Domain | % Score | Items
     sum_aligns = ["L", "C", "C"]
     hdr_fill = (0.91, 0.91, 0.91)  # light gray
     pg.table_row(["Domain", "% Score", "Items Scored"], sum_cols, row_h=16,
@@ -630,7 +630,7 @@ def _build_summary_table(result: Dict[str, object]) -> Table:
             ]
         )
     data.append(["Total", f"{result['total_percent']:.1f}", f"{result['items_scored']}/{result['items_total']}"])
-    table = Table(data, colWidths=[200, 80, 120])
+    table = Table(data, colWidths=[260, 80, 120])
     table.setStyle(
         TableStyle(
             [
