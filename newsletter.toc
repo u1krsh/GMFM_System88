@@ -1,0 +1,29 @@
+\contentsline {section}{\numberline {1}About This Newsletter}{3}{section.1}%
+\contentsline {section}{\numberline {2}Literature Survey: GMFM Assessment and the Need for Digitization}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}What is GMFM?}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Cerebral Palsy: The Clinical Context}{4}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}The Existing Assessment Landscape: From Paid Software to Manual Methods}{4}{subsection.2.3}%
+\contentsline {section}{\numberline {3}The Team}{5}{section.3}%
+\contentsline {section}{\numberline {4}Our Community Partner: SPASTN}{6}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Why SPASTN Was Chosen}{6}{subsection.4.1}%
+\contentsline {section}{\numberline {5}How It All Started: The Problem Discovery}{7}{section.5}%
+\contentsline {section}{\numberline {6}Our Visits to SPASTN}{7}{section.6}%
+\contentsline {section}{\numberline {7}The Development Journey}{10}{section.7}%
+\contentsline {subsection}{\numberline {7.1}By The Numbers}{12}{subsection.7.1}%
+\contentsline {section}{\numberline {8}The Application: MotorMeasure Pro}{12}{section.8}%
+\contentsline {subsection}{\numberline {8.1}What Does the App Do?}{12}{subsection.8.1}%
+\contentsline {subsection}{\numberline {8.2}Technology Stack}{13}{subsection.8.2}%
+\contentsline {subsection}{\numberline {8.3}Architecture Overview}{13}{subsection.8.3}%
+\contentsline {section}{\numberline {9}Key Challenges \& How We Overcame Them}{14}{section.9}%
+\contentsline {subsection}{\numberline {9.1}Challenge 1: No Problem Statement}{14}{subsection.9.1}%
+\contentsline {subsection}{\numberline {9.2}Challenge 2: Framework Pivot}{14}{subsection.9.2}%
+\contentsline {subsection}{\numberline {9.3}Challenge 3: Android Deployment}{14}{subsection.9.3}%
+\contentsline {subsection}{\numberline {9.4}Challenge 4: Offline-First with Cloud Sync}{15}{subsection.9.4}%
+\contentsline {subsection}{\numberline {9.5}Challenge 5: Clinical Data Privacy}{15}{subsection.9.5}%
+\contentsline {section}{\numberline {10}Impact \& Outcomes}{15}{section.10}%
+\contentsline {subsection}{\numberline {10.1}For the Therapists}{15}{subsection.10.1}%
+\contentsline {subsection}{\numberline {10.2}For the Children \& Parents}{16}{subsection.10.2}%
+\contentsline {subsection}{\numberline {10.3}For the Institution}{16}{subsection.10.3}%
+\contentsline {section}{\numberline {11}Official App Release}{16}{section.11}%
+\contentsline {section}{\numberline {12}Acknowledgements}{16}{section.12}%
+\contentsline {section}{\numberline {13}Looking Ahead}{17}{section.13}%

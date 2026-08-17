@@ -203,6 +203,7 @@ class SessionDetailView(ft.View):
         self.session_id = session_id
         self.repo = SessionRepository(db_context, user_id=user_id)
         self.student_repo = StudentRepository(db_context, user_id=user_id)
+        self._user_id = user_id
         self.c = c
 
         self.session = self.repo.get_session(session_id)
@@ -399,13 +400,19 @@ class SessionDetailView(ft.View):
                 docs_folder = Path(os.path.expanduser("~")) / "Documents" / "GMFM_Reports"
             docs_folder.mkdir(parents=True, exist_ok=True)
 
-            filename = f"GMFM_{self.student.given_name}_{self.student.family_name}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}"
+            from gmfm_app.data.repositories import get_tester_name
+            tester = get_tester_name(self.db_context, self.session, getattr(self, '_user_id', None))
+            safe_tester = "".join(c for c in tester if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+            safe_given = "".join(c for c in self.student.given_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+            safe_family = "".join(c for c in self.student.family_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+            filename = f"GMFM_{safe_given}_{safe_family}_TestedBy_{safe_tester}_{self.session.created_at.strftime('%Y%m%d_%H%M%S')}"
 
             result_path = generate_report(
                 student=self.student,
                 session=self.session,
                 scoring_result=self.results,
                 output_path=docs_folder / (filename + ".pdf"),
+                tester_name=tester,
             )
 
             saved_name = result_path.name

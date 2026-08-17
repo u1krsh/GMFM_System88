@@ -37,20 +37,21 @@ def generate_report(
     scoring_result: Dict[str, object],
     output_path: Path,
     trend_chart: Optional[bytes] = None,
+    tester_name: Optional[str] = None,
 ) -> Path:
     if REPORTLAB_AVAILABLE:
-        return _generate_reportlab(student, session, scoring_result, output_path, trend_chart)
+        return _generate_reportlab(student, session, scoring_result, output_path, trend_chart, tester_name=tester_name)
     # Try fpdf2 (pure Python) — may have failed at module-level, try lazy import
     try:
         if FPDF_AVAILABLE:
-            return _generate_fpdf2(student, session, scoring_result, output_path)
+            return _generate_fpdf2(student, session, scoring_result, output_path, tester_name=tester_name)
         else:
             from fpdf import FPDF as _  # noqa: F401
-            return _generate_fpdf2(student, session, scoring_result, output_path)
+            return _generate_fpdf2(student, session, scoring_result, output_path, tester_name=tester_name)
     except Exception:
         pass
     # Zero-dependency raw PDF fallback
-    return _generate_raw_pdf(student, session, scoring_result, output_path)
+    return _generate_raw_pdf(student, session, scoring_result, output_path, tester_name=tester_name)
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +63,7 @@ def _generate_fpdf2(
     session: Session,
     scoring_result: Dict[str, object],
     output_path: Path,
+    tester_name: Optional[str] = None,
 ) -> Path:
     output_path = output_path.with_suffix(".pdf")
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,6 +94,7 @@ def _generate_fpdf2(
         f"ID / MRN: {student.identifier or '-'}",
         f"Date of Birth: {student.dob.strftime('%B %d, %Y') if student.dob else '-'}",
         f"Assessment Date: {session.created_at.strftime('%B %d, %Y  %H:%M')}",
+        f"Tested By: {tester_name or 'Assessor'}",
         f"Scale: GMFM-{session.scale}",
     ]
     for line in info_lines:
@@ -339,6 +342,7 @@ def _generate_raw_pdf(
     session: Session,
     scoring_result: Dict[str, object],
     output_path: Path,
+    tester_name: Optional[str] = None,
 ) -> Path:
     """Generate a detailed PDF with proper tables using only Python builtins."""
     output_path = output_path.with_suffix(".pdf")
@@ -375,6 +379,7 @@ def _generate_raw_pdf(
         f"ID#: {student.identifier or '-'}",
         f"Date of Birth: {student.dob.strftime('%Y-%m-%d') if student.dob else '-'}",
         f"Assessment Date: {session.created_at.strftime('%Y-%m-%d')}",
+        f"Tested By: {tester_name or 'Assessor'}",
         f"Scale: GMFM-{session.scale}",
         f"Session ID: {session.id}",
     ]
@@ -553,6 +558,7 @@ def _generate_reportlab(
     scoring_result: Dict[str, object],
     output_path: Path,
     trend_chart: Optional[bytes] = None,
+    tester_name: Optional[str] = None,
 ) -> Path:
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc = SimpleDocTemplate(str(output_path), pagesize=letter, topMargin=36, bottomMargin=36)
@@ -566,6 +572,7 @@ def _generate_reportlab(
         f"Student's Name: {student.given_name} {student.family_name}",
         f"ID#: {student.identifier or '—'}",
         f"Assessment Date: {session.created_at.strftime('%Y-%m-%d')}",
+        f"Tested By: {tester_name or 'Assessor'}",
         f"Scale: GMFM-{session.scale}",
         f"Session ID: {session.id}",
         f"Total Score: {scoring_result['total_percent']}%",

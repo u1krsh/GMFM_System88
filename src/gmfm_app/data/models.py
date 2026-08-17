@@ -12,6 +12,7 @@ try:
         family_name: constr(min_length=1)
         dob: Optional[date] = None
         identifier: Optional[str] = None
+        user_id: Optional[int] = None
         created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class Session(BaseModel):
@@ -21,6 +22,7 @@ try:
         raw_scores: Dict[int, conint(ge=0, le=3)]
         total_score: Optional[float] = None
         notes: Optional[str] = None
+        user_id: Optional[int] = None
         created_at: datetime = Field(default_factory=datetime.utcnow)
 
     class AppUser(BaseModel):
@@ -68,6 +70,7 @@ except Exception:
         id: Optional[int] = None
         dob: Optional[date] = None
         identifier: Optional[str] = None
+        user_id: Optional[int] = None
         created_at: datetime = field(default_factory=datetime.utcnow)
 
         def __post_init__(self):
@@ -83,6 +86,7 @@ except Exception:
         id: Optional[int] = None
         total_score: Optional[float] = None
         notes: Optional[str] = None
+        user_id: Optional[int] = None
         created_at: datetime = field(default_factory=datetime.utcnow)
 
         def __post_init__(self):

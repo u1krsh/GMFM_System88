@@ -47,7 +47,6 @@ class StudentRepository(BaseRepository):
             students: List[Student] = []
             for row in rows:
                 data = dict(row)
-                data.pop("user_id", None)  # Don't pass to model
                 data["given_name"] = self._decrypt(data.get("given_name"))
                 data["family_name"] = self._decrypt(data.get("family_name"))
                 data["identifier"] = self._decrypt(data.get("identifier"))
@@ -65,7 +64,6 @@ class StudentRepository(BaseRepository):
             if row is None:
                 return None
             data = dict(row)
-            data.pop("user_id", None)
             data["given_name"] = self._decrypt(data.get("given_name"))
             data["family_name"] = self._decrypt(data.get("family_name"))
             data["identifier"] = self._decrypt(data.get("identifier"))
@@ -159,7 +157,6 @@ class SessionRepository(BaseRepository):
             if row is None:
                 return None
             data = dict(row)
-            data.pop("user_id", None)
             data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
             return Session(**data)
 
@@ -174,7 +171,6 @@ class SessionRepository(BaseRepository):
             sessions: List[Session] = []
             for r in rows:
                 data = dict(r)
-                data.pop("user_id", None)
                 data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
                 sessions.append(Session(**data))
             return sessions
@@ -196,7 +192,6 @@ class SessionRepository(BaseRepository):
             if row is None:
                 return None
             data = dict(row)
-            data.pop("user_id", None)
             data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
             return Session(**data)
 
@@ -241,7 +236,6 @@ class SessionRepository(BaseRepository):
                 data = dict(r)
                 given = data.pop("given_name", "")
                 family = data.pop("family_name", "")
-                data.pop("user_id", None)
                 data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
                 sess = Session(**data)
                 results.append({"session": sess, "given_name": given, "family_name": family})
@@ -288,7 +282,6 @@ class SessionRepository(BaseRepository):
             result = {}
             for r in rows:
                 data = dict(r)
-                data.pop("user_id", None)
                 data["raw_scores"] = json.loads(data["raw_scores"]) if data.get("raw_scores") else {}
                 sess = Session(**data)
                 result[sess.student_id] = sess
@@ -409,3 +402,12 @@ class UserRepository(BaseRepository):
                 users.append(AppUser(**data))
             return users
 
+
+def get_tester_name(db_context, session, fallback_user_id=None) -> str:
+    """Resolve the name of the assessor/examiner who conducted the session."""
+    user_repo = UserRepository(db_context)
+    uid = getattr(session, "user_id", None) or fallback_user_id or 1
+    u = user_repo.get_by_id(uid)
+    if u and (u.full_name or u.username):
+        return (u.full_name or u.username).strip()
+    return "Assessor"

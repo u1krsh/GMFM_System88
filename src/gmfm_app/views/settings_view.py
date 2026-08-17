@@ -68,12 +68,12 @@ class SettingsView(ft.View):
         # ── Cloud Sync Section ─────────────────────────────────────
         cloud_card = self._build_cloud_card()
 
-        # Data Management
         data_card = self._settings_card(
             "Data Management",
             [
                 self._action_row("Export as JSON", "Download all data as JSON", "code", self._export_data),
                 self._action_row("Export as CSV", "Download for Excel/Sheets", "table_chart", self._export_csv),
+                self._action_row("Export All as PDF", "Export PDF reports for all records", "picture_as_pdf", self._export_all_pdfs),
                 self._action_row("Clear All Data", "Delete all students and sessions", "delete_forever", self._clear_data, danger=True),
             ]
         )
@@ -89,7 +89,7 @@ class SettingsView(ft.View):
         about_card = self._settings_card(
             "About",
             [
-                self._info_row("Version", "0.1.0"),
+                self._info_row("Version", "0.2.0"),
                 self._info_row("GMFM Scale", "GMFM-88"),
                 self._info_row("Developer", "MotorMeasure Team (Sathyabama Institute of Science and Technology)"),
             ]
@@ -563,6 +563,77 @@ class SettingsView(ft.View):
                 subprocess.Popen(f'explorer "{export_dir}"')
             except Exception:
                 pass
+
+    def _export_all_pdfs(self, e):
+        success(self._page_ref)
+        from pathlib import Path
+        import os
+        import sys
+        from gmfm_app.data.repositories import StudentRepository, SessionRepository
+        from gmfm_app.scoring.engine import calculate_gmfm_scores
+        from gmfm_app.services.report_service import generate_report
+
+        def on_dir_picked(e_picker: ft.FilePickerResultEvent):
+            if not e_picker.path:
+                return
+
+            export_dir = Path(e_picker.path)
+            export_dir.mkdir(parents=True, exist_ok=True)
+
+            self._snack("Exporting all PDF reports...", INFO)
+            self._page_ref.update()
+
+            from gmfm_app.data.repositories import StudentRepository, SessionRepository, get_tester_name
+            student_repo = StudentRepository(self.db_context, user_id=self._user_id)
+            session_repo = SessionRepository(self.db_context, user_id=self._user_id)
+            students = student_repo.list_students(limit=1000)
+
+            count = 0
+            errors = 0
+            for s in students:
+                sessions = session_repo.list_sessions_for_student(s.id)
+                for sess in sessions:
+                    try:
+                        results = calculate_gmfm_scores(sess.raw_scores, scale=sess.scale)
+                        tester = get_tester_name(self.db_context, sess, self._user_id)
+                        safe_tester = "".join(c for c in tester if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+                        safe_given = "".join(c for c in s.given_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+                        safe_family = "".join(c for c in s.family_name if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
+                        filename = f"GMFM_{safe_given}_{safe_family}_TestedBy_{safe_tester}_{sess.created_at.strftime('%Y%m%d_%H%M%S')}.pdf"
+                        output_path = export_dir / filename
+
+                        generate_report(
+                            student=s,
+                            session=sess,
+                            scoring_result=results,
+                            output_path=output_path,
+                            tester_name=tester,
+                        )
+                        count += 1
+                    except Exception as ex:
+                        print(f"[SETTINGS] Failed to export PDF for session {sess.id}: {ex}", flush=True)
+                        errors += 1
+
+            if count > 0:
+                msg = f"Successfully exported {count} PDF report(s) to {export_dir}!"
+                if errors > 0:
+                    msg += f" ({errors} failed)"
+                self._snack(msg, SUCCESS_CLR)
+                if sys.platform == "win32":
+                    try:
+                        import subprocess
+                        subprocess.Popen(f'explorer "{export_dir}"')
+                    except Exception:
+                        pass
+            elif errors > 0:
+                self._snack(f"Failed to export PDFs ({errors} error(s)).", ERROR)
+            else:
+                self._snack("No assessment sessions found to export.", WARNING_CLR)
+
+        file_picker = ft.FilePicker(on_result=on_dir_picked)
+        self._page_ref.overlay.append(file_picker)
+        self._page_ref.update()
+        file_picker.get_directory_path(dialog_title="Select Folder to Export All Student PDFs")
 
     def _clear_data(self, e):
         warning(self._page_ref)
