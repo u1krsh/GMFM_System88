@@ -119,6 +119,64 @@ class AdminService:
     def is_available(self) -> bool:
         return self._client() is not None
 
+    # ── diagnostics ──────────────────────────────────────────────────────────
+
+    def status(self) -> dict:
+        """Explain whether the console can show data, and if not, why.
+
+        An empty console has three very different causes and they used to be
+        indistinguishable: no network, no cloud session, or a cloud ``profiles.role``
+        that isn't ``admin`` (RLS ``is_admin()`` false → every query silently returns
+        only the acting user's own rows). Returns
+        ``{"state", "detail", "role", "email"}`` where state is one of
+        ``ok | not_configured | offline | no_session | not_admin | error``.
+        Never raises.
+        """
+        if not self.sync:
+            return {"state": "not_configured", "detail": "Cloud sync isn't set up on this device.",
+                    "role": None, "email": ""}
+        try:
+            if not self.sync._get_client():
+                return {"state": "not_configured",
+                        "detail": "The Supabase client couldn't start on this device.",
+                        "role": None, "email": ""}
+            if not self.sync.ensure_auth():
+                online = False
+                try:
+                    online = self.sync.is_online()
+                except Exception:
+                    pass
+                if not online:
+                    return {"state": "offline", "detail": "No internet connection.",
+                            "role": None, "email": self.sync.config.cloud_email or ""}
+                return {"state": "no_session",
+                        "detail": "You're online but not signed in to the cloud. "
+                                  "Sign out and sign in again, or reset your password "
+                                  "if the cloud password no longer matches.",
+                        "role": None, "email": self.sync.config.cloud_email or ""}
+
+            client = self.sync._get_client()
+            rows = (client.table("profiles").select("role, email")
+                    .eq("id", self.sync._user_id).execute().data) or []
+            if not rows:
+                return {"state": "no_session",
+                        "detail": "Your cloud profile row is missing. Sign out and sign in "
+                                  "again to recreate it.",
+                        "role": None, "email": self.sync.config.cloud_email or ""}
+            role = rows[0].get("role")
+            email = rows[0].get("email") or self.sync.config.cloud_email or ""
+            if role != "admin":
+                return {"state": "not_admin",
+                        "detail": f"The server says this account is a '{role}', not an "
+                                  "administrator, so it can only see its own records. "
+                                  "An existing admin has to promote it — or, if the project "
+                                  "has no admin at all, run supabase_migrate_admin.sql once.",
+                        "role": role, "email": email}
+            return {"state": "ok", "detail": "", "role": role, "email": email}
+        except Exception as e:
+            return {"state": "error", "detail": f"{type(e).__name__}: {str(e)[:120]}",
+                    "role": None, "email": ""}
+
     # ── read ───────────────────────────────────────────────────────────────
 
     def snapshot(self) -> Optional[AdminSnapshot]:
@@ -250,14 +308,35 @@ class AdminService:
             return False, f"Failed: {str(e)[:80]}"
 
     def set_role(self, uid: str, role: str) -> tuple:
-        """Promote/demote an account. Cloud trigger enforces admin-only role change."""
+        """Promote/demote an account. Cloud trigger enforces admin-only role change.
+
+        Refuses to demote the last remaining administrator — otherwise nobody could
+        ever manage roles again (a non-admin cannot promote anyone, by policy).
+        """
         if role not in self.VALID_ROLES:
             return False, "Invalid role"
         client = self._client()
         if not client:
             return False, self._OFFLINE
         try:
+            if role != "admin":
+                rows = client.table("profiles").select("id").eq("role", "admin").execute().data or []
+                admin_ids = [r.get("id") for r in rows]
+                if uid in admin_ids and len(admin_ids) <= 1:
+                    return False, "This is the only administrator — add another one first."
             client.table("profiles").update({"role": role}).eq("id", uid).execute()
             return True, "Role updated"
         except Exception as e:
             return False, f"Failed: {str(e)[:80]}"
+
+    def promote_to_admin(self, uid: str) -> tuple:
+        """Grant administrator rights to an existing cloud account.
+
+        This is the only way for an admin to make *someone else* a cloud admin:
+        the client holds just the anon key, so it can neither create another
+        user's auth record (needs ``service_role``) nor insert their profile row
+        (``profiles_insert`` allows ``auth.uid() = id`` only). The account must
+        therefore already exist — the person signs up themselves (they can also
+        pick Admin on the signup screen), then an admin promotes them here.
+        """
+        return self.set_role(uid, "admin")

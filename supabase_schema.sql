@@ -171,18 +171,18 @@ RETURNS BOOLEAN AS $$
   SELECT NOT EXISTS (SELECT 1 FROM profiles);
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- Guard the profiles.role column so it can never be self-escalated.
---  INSERT: 'admin' is allowed only for the first-ever profile or by an existing
---          admin; unknown roles are clamped to 'teacher'.
+-- Guard the profiles.role column.
+--  INSERT: any role from the signup form is accepted, INCLUDING 'admin' — the
+--          signup screen deliberately offers Teacher / Parent / Admin. Unknown
+--          roles are clamped to 'teacher'.
 --  UPDATE: only an admin may change a role at all; unknown roles are rejected.
+--          This still prevents an EXISTING account from being escalated after
+--          the fact (e.g. a teacher PATCHing their own role to admin).
 -- This makes the cloud the source of truth for roles.
 CREATE OR REPLACE FUNCTION protect_profile_role()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    IF NEW.role = 'admin' AND NOT (is_first_profile() OR is_admin()) THEN
-      NEW.role := 'teacher';
-    END IF;
     IF NEW.role NOT IN ('admin', 'teacher', 'parent', 'sponsor') THEN
       NEW.role := 'teacher';
     END IF;

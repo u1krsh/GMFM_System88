@@ -11,9 +11,19 @@ ACCENT = "#7C3AED"
 ERROR_CLR = "#EF4444"
 SUCCESS_CLR = "#10B981"
 
+# Account types offered on the signup screen. 'sponsor' stays valid in the data
+# model (legacy) but is not selectable here.
 ROLE_CONFIG = {
     "teacher": {"label": "Teacher", "icon": "school", "color": "#0D9488"},
     "parent": {"label": "Parent", "icon": "family_restroom", "color": "#F59E0B"},
+    "admin": {"label": "Admin", "icon": "admin_panel_settings", "color": ACCENT},
+}
+
+# Shown under the chips when a role needs explaining.
+ROLE_HINTS = {
+    "teacher": "Assess children, record sessions and track progress.",
+    "parent": "View the progress of children you've been linked to.",
+    "admin": "Full access to every account and every child's records.",
 }
 
 
@@ -234,6 +244,9 @@ class LoginView(ft.View):
             )
             chips.append(chip)
 
+        hint = ROLE_HINTS.get(self._selected_role, "")
+        hint_clr = ROLE_CONFIG.get(self._selected_role, {}).get("color", c["TEXT2"])
+
         return ft.Container(
             content=ft.Column([
                 ft.Text("Account Type", size=11, weight=ft.FontWeight.W_600,
@@ -241,6 +254,9 @@ class LoginView(ft.View):
                 ft.Container(height=4),
                 ft.Row(chips, alignment=ft.MainAxisAlignment.CENTER, spacing=6,
                        wrap=True),
+                ft.Container(height=4),
+                ft.Text(hint, size=10, color=hint_clr,
+                        text_align=ft.TextAlign.CENTER, visible=bool(hint)),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=0),
             visible=self._register_mode,
         )

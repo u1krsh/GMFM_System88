@@ -57,6 +57,7 @@ class AdminConsoleView(ft.View):
         self._page_ref = page
         self.db_context = db_context
         self.sync_service = sync_service
+        self.auth_service = auth_service
         self.admin_service = AdminService(sync_service)
         self._snapshot = None
 
@@ -96,21 +97,44 @@ class AdminConsoleView(ft.View):
             alignment=ft.alignment.center, expand=True,
         )
 
-    def _empty(self):
+    _NOTICE_STYLE = {
+        "offline":        ("cloud_off", "Admin console is offline"),
+        "not_configured": ("cloud_off", "Cloud sync isn't available"),
+        "no_session":     ("no_accounts", "Not signed in to the cloud"),
+        "not_admin":      ("gpp_maybe", "This account isn't an admin on the server"),
+        "error":          ("error_outline", "Couldn't load the admin console"),
+    }
+
+    def _notice(self, status):
+        """Empty state that says *which* of the failure modes actually happened."""
         c = self._c
+        icon, title = self._NOTICE_STYLE.get(status.get("state"),
+                                             ("cloud_off", "Admin console unavailable"))
+        body = [
+            ft.Icon(icon, size=64, color=c["TEXT3"]),
+            ft.Container(height=12),
+            ft.Text(title, size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"],
+                    text_align=ft.TextAlign.CENTER),
+            ft.Container(height=6),
+            ft.Text(status.get("detail", ""), size=13, color=c["TEXT2"],
+                    text_align=ft.TextAlign.CENTER),
+        ]
+        if status.get("email"):
+            body += [
+                ft.Container(height=10),
+                ft.Text(f"Signed in as {status['email']}"
+                        + (f" · server role: {status['role']}" if status.get("role") else ""),
+                        size=11, color=c["TEXT3"], text_align=ft.TextAlign.CENTER),
+            ]
+        body += [
+            ft.Container(height=20),
+            ft.ElevatedButton("Retry", icon="refresh", bgcolor=PRIMARY, color="white",
+                              on_click=lambda _: self._reload()),
+        ]
         return ft.Container(
-            content=ft.Column([
-                ft.Icon("cloud_off", size=64, color=c["TEXT3"]),
-                ft.Container(height=12),
-                ft.Text("Admin console is offline", size=18, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
-                ft.Container(height=6),
-                ft.Text("Connect to the internet and sign in to the cloud\nto manage teachers, parents and children.",
-                        size=13, color=c["TEXT2"], text_align=ft.TextAlign.CENTER),
-                ft.Container(height=20),
-                ft.ElevatedButton("Retry", icon="refresh", bgcolor=PRIMARY, color="white",
-                                  on_click=lambda _: self._reload()),
-            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-                alignment=ft.MainAxisAlignment.CENTER),
+            content=ft.Column(body, horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                              alignment=ft.MainAxisAlignment.CENTER,
+                              scroll=ft.ScrollMode.AUTO),
             alignment=ft.alignment.center, expand=True, padding=30,
         )
 
@@ -122,9 +146,23 @@ class AdminConsoleView(ft.View):
 
         def work():
             # Network latency guarantees the view is mounted before we update.
+            # status() first: an empty console has several causes (offline, no
+            # cloud session, cloud role isn't admin) and they must not all render
+            # as the same silent empty state.
+            status = self.admin_service.status()
+            if status.get("state") != "ok":
+                self._snapshot = None
+                self.body.content = self._notice(status)
+                self._safe_update()
+                return
             snap = self.admin_service.snapshot()
             self._snapshot = snap
-            self.body.content = self._empty() if snap is None else self._build_tabs()
+            self.body.content = (self._notice({"state": "error",
+                                               "detail": "The cloud query failed. Check your "
+                                                         "connection and retry.",
+                                               "email": status.get("email", ""),
+                                               "role": status.get("role")})
+                                 if snap is None else self._build_tabs())
             self._safe_update()
 
         threading.Thread(target=work, daemon=True).start()
@@ -305,7 +343,20 @@ class AdminConsoleView(ft.View):
     def _tab_accounts(self):
         c = self._c
         my_uid = getattr(self.sync_service, "_user_id", None)
-        rows = []
+        admin_count = sum(1 for p in self._snapshot.accounts if p.get("role") == "admin")
+        rows = [self._card(
+            ft.Row([
+                ft.Icon("admin_panel_settings", color=SECONDARY, size=22),
+                ft.Column([
+                    ft.Text("Administrators", size=14, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
+                    ft.Text(f"{admin_count} admin account{'s' if admin_count != 1 else ''}",
+                            size=11, color=c["TEXT2"]),
+                ], spacing=0, expand=True),
+                ft.ElevatedButton("Add admin", icon="person_add", bgcolor=SECONDARY,
+                                  color="white",
+                                  on_click=lambda _: self._open_add_admin_dialog()),
+            ], spacing=10),
+        )]
         for p in self._snapshot.accounts:
             uid = p["id"]
             is_me = uid == my_uid
@@ -400,6 +451,147 @@ class AdminConsoleView(ft.View):
             title=ft.Text(title, size=16),
             content=content,
             actions=[ft.TextButton("Cancel", on_click=lambda _: self._page_ref.close(dlg))],
+        )
+        self._page_ref.open(dlg)
+
+    # ── add administrator ───────────────────────────────────────────────────
+
+    def _open_add_admin_dialog(self, mode: str = "promote"):
+        """Add an administrator.
+
+        Two modes, because the client holds only the Supabase anon key:
+        * **promote** — grant admin to an account that already exists in the cloud.
+          This is the only path that produces a *cloud* admin, and it takes effect
+          immediately (RLS ``is_admin()`` + the ``protect_profile_role`` trigger
+          both allow an admin to change roles).
+        * **create** — make a brand-new admin account in this device's local
+          database. Needed for offline/local-only use; the cloud side still has to
+          be finished by promoting them once they've signed in.
+        """
+        c = self._c
+        snap = self._snapshot
+
+        def switch(to):
+            def handler(e):
+                tap(self._page_ref)
+                self._page_ref.close(dlg)
+                self._open_add_admin_dialog(to)
+            return handler
+
+        def tab_btn(label, target):
+            active = mode == target
+            return ft.Container(
+                content=ft.Text(label, size=12,
+                                weight=ft.FontWeight.BOLD if active else ft.FontWeight.W_500,
+                                color="white" if active else c["TEXT2"]),
+                padding=ft.padding.symmetric(horizontal=12, vertical=7),
+                bgcolor=SECONDARY if active else "transparent",
+                border_radius=8, ink=True,
+                on_click=None if active else switch(target),
+            )
+
+        toggle = ft.Container(
+            content=ft.Row([tab_btn("Promote existing", "promote"),
+                            tab_btn("Create new", "create")], spacing=4),
+            bgcolor=f"{SECONDARY}14", border_radius=10, padding=3,
+        )
+
+        if mode == "promote":
+            pool = [p for p in snap.accounts if p.get("role") != "admin"]
+
+            def pick(person):
+                def handler(e):
+                    tap(self._page_ref)
+                    self._page_ref.close(dlg)
+                    ok, msg = self.admin_service.promote_to_admin(person["id"])
+                    self._after_write(ok, "Administrator added" if ok else msg)
+                return handler
+
+            if pool:
+                items = [
+                    ft.Container(
+                        content=ft.Row([
+                            ft.Icon("person", size=18, color=c["TEXT3"]),
+                            ft.Column([
+                                ft.Text(_display(p), size=14, weight=ft.FontWeight.BOLD,
+                                        color=c["TEXT1"]),
+                                ft.Text(f"{p.get('email', '')} · {p.get('role', '')}",
+                                        size=11, color=c["TEXT2"]),
+                            ], spacing=0, expand=True),
+                            ft.Icon("admin_panel_settings", size=20, color=SECONDARY),
+                        ], spacing=10),
+                        padding=10, border_radius=10, ink=True, on_click=pick(p),
+                    )
+                    for p in pool
+                ]
+                body = ft.Column(items, spacing=6, scroll=ft.ScrollMode.AUTO, tight=True,
+                                 width=340, height=min(len(items) * 62, 280))
+            else:
+                body = ft.Container(
+                    content=ft.Text("Every cloud account is already an administrator.\n"
+                                    "Use \"Create new\" to add another account.",
+                                    size=13, color=c["TEXT2"]),
+                    width=340, padding=10)
+            content = ft.Column([toggle, body], spacing=10, tight=True, width=340)
+            actions = [ft.TextButton("Cancel", on_click=lambda _: self._page_ref.close(dlg))]
+        else:
+            f_name = ft.TextField(label="Full name", dense=True)
+            f_user = ft.TextField(label="Username", dense=True)
+            f_mail = ft.TextField(label="Email", dense=True, keyboard_type=ft.KeyboardType.EMAIL)
+            f_pass = ft.TextField(label="Password", dense=True, password=True,
+                                  can_reveal_password=True)
+            err = ft.Text("", size=12, color=ERROR, visible=False)
+            note = ft.Container(
+                content=ft.Row([
+                    ft.Icon("info_outline", size=15, color=WARNING_CLR),
+                    ft.Text("Creates an admin account on this device. Their cloud role "
+                            "starts as teacher when they first sign in online — come "
+                            "back and promote them to finish.",
+                            size=11, color=c["TEXT2"], expand=True),
+                ], spacing=6),
+                bgcolor=f"{WARNING_CLR}14", border_radius=8, padding=8, width=340,
+            )
+
+            def create(e):
+                tap(self._page_ref)
+                err.visible = False
+                if not self.auth_service:
+                    err.value = "Local account creation isn't available here."
+                    err.visible = True
+                    return self._safe_update()
+                try:
+                    self.auth_service.create_user_account(
+                        (f_name.value or "").strip(),
+                        (f_user.value or "").strip(),
+                        f_pass.value or "",
+                        email=(f_mail.value or "").strip(),
+                        role="admin",
+                        allow_privileged=True,   # admin may mint a privileged role
+                        skip_cloud=True,         # don't hijack this admin's session
+                    )
+                except ValueError as ex:
+                    err.value = str(ex)
+                    err.visible = True
+                    return self._safe_update()
+                except Exception as ex:
+                    err.value = f"Failed: {str(ex)[:70]}"
+                    err.visible = True
+                    return self._safe_update()
+                self._page_ref.close(dlg)
+                self._after_write(True, "Local admin account created")
+
+            content = ft.Column([toggle, note, f_name, f_user, f_mail, f_pass, err],
+                                spacing=9, tight=True, width=340)
+            actions = [
+                ft.TextButton("Cancel", on_click=lambda _: self._page_ref.close(dlg)),
+                ft.ElevatedButton("Create", bgcolor=SECONDARY, color="white", on_click=create),
+            ]
+
+        dlg = ft.AlertDialog(
+            modal=True,
+            title=ft.Text("Add administrator", size=16),
+            content=content,
+            actions=actions,
         )
         self._page_ref.open(dlg)
 

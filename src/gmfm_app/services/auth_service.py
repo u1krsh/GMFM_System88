@@ -84,20 +84,36 @@ class AuthService:
         return self.repo.count_users() > 0
 
     def create_user_account(self, full_name: str, username: str, password: str,
-                            email: str = "", role: str = "teacher") -> AppUser:
-        """Create a new user account. Auto-registers to Supabase."""
+                            email: str = "", role: str = "teacher",
+                            allow_privileged: bool = False,
+                            skip_cloud: bool = False) -> AppUser:
+        """Create a new user account. Auto-registers to Supabase.
+
+        ``allow_privileged`` lets an existing administrator create an account with
+        any valid role from the admin console, including otherwise non-selectable
+        ones such as ``sponsor``.
+
+        ``skip_cloud`` suppresses the immediate Supabase sign-up. Required when an
+        admin creates an account *on behalf of someone else*: ``sign_up`` swaps the
+        client's session to the new user, which would silently sign the admin out
+        of the cloud mid-session.
+        """
         normalized = _normalize_username(username)
         if len(normalized) < 3:
             raise ValueError("Username must be at least 3 characters")
         if len(password or "") < 6:
             raise ValueError("Password must be at least 6 characters")
 
-        # Role policy: the very first account bootstraps the local administrator;
-        # every subsequent public signup is limited to teacher/parent. Admin is
-        # never self-selectable — additional admins are promoted via the console.
+        # Role policy: the very first account always bootstraps an administrator.
+        # Afterwards the signup form offers Teacher / Parent / Admin, so 'admin'
+        # is accepted here too; the cloud trigger mirrors this. 'sponsor' remains
+        # non-selectable (legacy role) unless an admin creates the account.
         if not self.has_users():
             role = "admin"
-        elif role not in ("teacher", "parent"):
+        elif allow_privileged:
+            if role not in VALID_ROLES:
+                role = "teacher"
+        elif role not in ("teacher", "parent", "admin"):
             role = "teacher"
 
         # Check if username already exists
@@ -116,7 +132,7 @@ class AuthService:
         # local account creation on cloud failures (network, DNS, etc.).
         # The _cloud_provision() mechanism will auto-register on next login.
         cloud_uid = ""
-        if email_clean and self.sync_service:
+        if email_clean and self.sync_service and not skip_cloud:
             if self.sync_service.is_online():
                 uid, err_msg = self._cloud_register(email_clean, password, full_name, role)
                 if uid:
@@ -125,6 +141,9 @@ class AuthService:
                     _log(f"Cloud registration deferred (will auto-provision on next login): {err_msg}")
             else:
                 _log("Offline — skipping immediate cloud registration (will auto-provision later)")
+        elif skip_cloud:
+            _log(f"Cloud sign-up skipped for {email_clean or normalized} "
+                 "(created by an admin — preserving the admin's own cloud session)")
 
         user = AppUser(
             username=normalized,
@@ -242,9 +261,15 @@ class AuthService:
                 if not sync:
                     return
 
-                # Skip immediately if we already have an active session
+                # A session may already be live (restored from the refresh token by
+                # the sync worker, or a previous login in this run). Skip the
+                # sign-in, but still reconcile: cloud is authoritative for roles, and
+                # returning early here used to leave a device's local role stale
+                # forever — an admin's promotion/demotion never reached them.
                 if sync._user_id:
-                    _log(f"Cloud session already active for {user.username}")
+                    _log(f"Cloud session already active for {user.username} — reconciling only")
+                    self._finalize_cloud_uid(page, user, sync)
+                    self._reconcile_role(page, user, sync)
                     return
 
                 if not sync.is_online():
@@ -316,9 +341,25 @@ class AuthService:
             rows = getattr(res, "data", None) or []
             cloud_role = rows[0].get("role") if rows else None
             if cloud_role in VALID_ROLES and cloud_role != user.role:
+                old_role = user.role
                 self.repo.update_role(user.id, cloud_role)
                 user.role = cloud_role
                 _log(f"Reconciled role for {user.username} from cloud -> {cloud_role}")
+                # Tell the user. A silent demotion is confusing — menu entries
+                # (e.g. the Admin console) simply vanish with no explanation.
+                try:
+                    import flet as ft
+                    page.snack_bar = ft.SnackBar(
+                        content=ft.Text(
+                            f"Your account role changed on the server: "
+                            f"{old_role} → {cloud_role}. Restart to apply everywhere.",
+                            color="white"),
+                        bgcolor="#F59E0B",
+                    )
+                    page.snack_bar.open = True
+                    page.update()
+                except Exception:
+                    pass
         except Exception as e:
             _log(f"Role reconcile skipped for {user.username}: {e}")
 
