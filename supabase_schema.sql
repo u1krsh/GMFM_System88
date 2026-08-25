@@ -10,6 +10,10 @@ DROP FUNCTION IF EXISTS handle_new_user() CASCADE;
 DROP FUNCTION IF EXISTS is_admin() CASCADE;
 DROP FUNCTION IF EXISTS user_has_student_access(BIGINT) CASCADE;
 DROP FUNCTION IF EXISTS user_owns_student(BIGINT) CASCADE;
+DROP FUNCTION IF EXISTS is_first_profile() CASCADE;
+DROP FUNCTION IF EXISTS protect_profile_role() CASCADE;
+DROP FUNCTION IF EXISTS user_has_student_access_level(BIGINT, TEXT[]) CASCADE;
+DROP FUNCTION IF EXISTS user_can_access_session(UUID, INTEGER, BOOLEAN) CASCADE;
 
 -- Drop policies first (they reference tables)
 DO $$ BEGIN
@@ -131,6 +135,74 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
+-- Check if current user holds one of the given access levels on a student.
+-- Used to let 'edit'/'owner'-linked co-teachers modify a shared student.
+CREATE OR REPLACE FUNCTION user_has_student_access_level(p_student_id BIGINT, p_levels TEXT[])
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM student_access
+    WHERE student_id = p_student_id
+      AND user_id = auth.uid()
+      AND access_level = ANY(p_levels)
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Resolve a session's (created_by, student_local_id) -> students.id and check
+-- whether the current user has access to that student. p_need_edit=TRUE requires
+-- an 'edit'/'owner' link; FALSE allows any link (view/edit/owner). Lets parents
+-- and co-teachers read (and, with edit, later author) a linked child's sessions.
+CREATE OR REPLACE FUNCTION user_can_access_session(p_created_by UUID, p_student_local_id INTEGER, p_need_edit BOOLEAN)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM students st
+    JOIN student_access sa ON sa.student_id = st.id
+    WHERE st.created_by = p_created_by
+      AND st.local_id = p_student_local_id
+      AND sa.user_id = auth.uid()
+      AND (NOT p_need_edit OR sa.access_level IN ('edit', 'owner'))
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- True only when no profile exists yet (the very first signup). SECURITY DEFINER
+-- so it reads profiles regardless of RLS; used to bootstrap the first admin.
+CREATE OR REPLACE FUNCTION is_first_profile()
+RETURNS BOOLEAN AS $$
+  SELECT NOT EXISTS (SELECT 1 FROM profiles);
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- Guard the profiles.role column so it can never be self-escalated.
+--  INSERT: 'admin' is allowed only for the first-ever profile or by an existing
+--          admin; unknown roles are clamped to 'teacher'.
+--  UPDATE: only an admin may change a role at all; unknown roles are rejected.
+-- This makes the cloud the source of truth for roles.
+CREATE OR REPLACE FUNCTION protect_profile_role()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    IF NEW.role = 'admin' AND NOT (is_first_profile() OR is_admin()) THEN
+      NEW.role := 'teacher';
+    END IF;
+    IF NEW.role NOT IN ('admin', 'teacher', 'parent', 'sponsor') THEN
+      NEW.role := 'teacher';
+    END IF;
+  ELSIF TG_OP = 'UPDATE' THEN
+    IF NEW.role IS DISTINCT FROM OLD.role AND NOT is_admin() THEN
+      NEW.role := OLD.role;
+    END IF;
+    IF NEW.role NOT IN ('admin', 'teacher', 'parent', 'sponsor') THEN
+      NEW.role := OLD.role;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS protect_profile_role_trigger ON profiles;
+CREATE TRIGGER protect_profile_role_trigger
+  BEFORE INSERT OR UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION protect_profile_role();
+
 -- =============================================
 -- 6. ROW LEVEL SECURITY
 -- =============================================
@@ -139,7 +211,7 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "profiles_select" ON profiles
-  FOR SELECT USING (true);
+  FOR SELECT USING (id = auth.uid() OR is_admin());
 
 CREATE POLICY "profiles_insert" ON profiles
   FOR INSERT WITH CHECK (auth.uid() = id);
@@ -161,7 +233,11 @@ CREATE POLICY "students_insert" ON students
   FOR INSERT WITH CHECK (created_by = auth.uid());
 
 CREATE POLICY "students_update" ON students
-  FOR UPDATE USING (created_by = auth.uid() OR is_admin());
+  FOR UPDATE USING (
+    created_by = auth.uid()
+    OR is_admin()
+    OR user_has_student_access_level(id, ARRAY['edit', 'owner'])
+  );
 
 CREATE POLICY "students_delete" ON students
   FOR DELETE USING (created_by = auth.uid() OR is_admin());
@@ -173,6 +249,7 @@ CREATE POLICY "sessions_select" ON sessions
   FOR SELECT USING (
     created_by = auth.uid()
     OR is_admin()
+    OR user_can_access_session(created_by, student_local_id, FALSE)
   );
 
 CREATE POLICY "sessions_insert" ON sessions
@@ -196,8 +273,8 @@ CREATE POLICY "student_access_select" ON student_access
 
 CREATE POLICY "student_access_insert" ON student_access
   FOR INSERT WITH CHECK (
-    is_admin()
-    OR user_owns_student(student_id)
+    (is_admin() OR user_owns_student(student_id))
+    AND access_level IN ('view', 'edit')
   );
 
 CREATE POLICY "student_access_delete" ON student_access
@@ -220,7 +297,9 @@ CREATE INDEX idx_profiles_role ON profiles(role);
 -- 8. TABLE GRANTS (required for RLS to work)
 -- =============================================
 GRANT SELECT, INSERT, UPDATE ON profiles TO authenticated;
-GRANT SELECT ON profiles TO anon;
+-- Profiles are no longer world-readable: anon must not read PII/roles.
+-- All app profile reads happen after sign-in (authenticated), so this is safe.
+REVOKE SELECT ON profiles FROM anon;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON students TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON sessions TO authenticated;

@@ -15,14 +15,15 @@ from gmfm_app.theme import (
 
 
 class SessionHistoryView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, is_dark: bool = False, user_id=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, is_dark: bool = False, user_id=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = get_colors(is_dark)
         super().__init__(route=f"/history?student_id={student_id}", padding=0, bgcolor=c["BG"])
         self._page_ref = page
         self.db_context = db_context
         self.student_id = student_id
-        self.repo = SessionRepository(db_context, user_id=user_id)
-        self.student_repo = StudentRepository(db_context, user_id=user_id)
+        self.repo = SessionRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
+        self.student_repo = StudentRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
         self.c = c
 
         student = self.student_repo.get_student(student_id)
@@ -195,14 +196,15 @@ class SessionHistoryView(ft.View):
 
 
 class SessionDetailView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, session_id: int, is_dark: bool = False, user_id=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, session_id: int, is_dark: bool = False, user_id=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = get_colors(is_dark)
         super().__init__(route=f"/session?session_id={session_id}", padding=0, bgcolor=c["BG"])
         self._page_ref = page
         self.db_context = db_context
         self.session_id = session_id
-        self.repo = SessionRepository(db_context, user_id=user_id)
-        self.student_repo = StudentRepository(db_context, user_id=user_id)
+        self.repo = SessionRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
+        self.student_repo = StudentRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
         self._user_id = user_id
         self.c = c
 
@@ -502,12 +504,13 @@ class SessionDetailView(ft.View):
 
 
 class CompareView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, session1_id: int, session2_id: int, is_dark: bool = False, user_id=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, session1_id: int, session2_id: int, is_dark: bool = False, user_id=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = get_colors(is_dark)
         super().__init__(route=f"/compare?session1={session1_id}&session2={session2_id}", padding=0, bgcolor=c["BG"])
         self._page_ref = page
         self.c = c
-        repo = SessionRepository(db_context, user_id=user_id)
+        repo = SessionRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
         
         s1 = repo.get_session(session1_id)
         s2 = repo.get_session(session2_id)

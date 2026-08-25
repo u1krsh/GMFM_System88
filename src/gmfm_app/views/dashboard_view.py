@@ -29,25 +29,26 @@ def get_greeting(display_name: str | None = None):
 
 
 class DashboardView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, current_user=None, user_id=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, current_user=None, user_id=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = get_colors(is_dark)
         super().__init__(route="/", padding=0, bgcolor=c["BG"], scroll=ft.ScrollMode.AUTO)
         self._page_ref = page
         self.db_context = db_context
-        self.repo = StudentRepository(db_context, user_id=user_id)
-        self.session_repo = SessionRepository(db_context, user_id=user_id)
+        self.repo = StudentRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
+        self.session_repo = SessionRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
         self.c = c
         self._user_id = user_id  # stored so DOCX import uses the real logged-in user
+        self._role = (getattr(current_user, "role", "") or "teacher") if current_user else "teacher"
         self.search_term = ""  # For search highlighting
 
         display_name = None
-        self.is_read_only = False
+        # Read-only follows write capability from the access scope (parents/sponsors).
+        self.is_read_only = not can_write
         if current_user is not None:
             full_name = (getattr(current_user, "full_name", "") or "").strip()
             username = (getattr(current_user, "username", "") or "").strip()
             display_name = full_name.split(" ")[0] if full_name else username
-            if getattr(current_user, "role", "teacher") == "parent":
-                self.is_read_only = True
 
         # Header with search
         self.search = ft.TextField(
@@ -88,6 +89,9 @@ class DashboardView(ft.View):
                             ft.Text("MotorMeasure", size=22, weight=ft.FontWeight.BOLD, color=c["TEXT1"]),
                         ], spacing=0, expand=True),
                         self._build_sync_indicator(c),
+                        ft.IconButton("admin_panel_settings", icon_color=SECONDARY,
+                                      tooltip="Admin console", visible=(self._role == "admin"),
+                                      on_click=lambda _: self._page_ref.go("/admin")),
                         ft.IconButton("settings", icon_color=c["TEXT2"], on_click=lambda _: self._page_ref.go("/settings")),
                     ]),
                     ft.Container(height=12),

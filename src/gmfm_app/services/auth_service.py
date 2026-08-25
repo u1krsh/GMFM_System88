@@ -91,8 +91,14 @@ class AuthService:
             raise ValueError("Username must be at least 3 characters")
         if len(password or "") < 6:
             raise ValueError("Password must be at least 6 characters")
-        if role not in VALID_ROLES:
-            raise ValueError(f"Invalid role: {role}")
+
+        # Role policy: the very first account bootstraps the local administrator;
+        # every subsequent public signup is limited to teacher/parent. Admin is
+        # never self-selectable — additional admins are promoted via the console.
+        if not self.has_users():
+            role = "admin"
+        elif role not in ("teacher", "parent"):
+            role = "teacher"
 
         # Check if username already exists
         existing = self.repo.get_by_username(normalized)
@@ -106,14 +112,17 @@ class AuthService:
             if existing_email:
                 raise ValueError("Email already registered")
 
-        # Auto-register to Supabase FIRST to get cloud_uid
+        # Try to register with Supabase to get cloud_uid, but NEVER block
+        # local account creation on cloud failures (network, DNS, etc.).
+        # The _cloud_provision() mechanism will auto-register on next login.
         cloud_uid = ""
         if email_clean and self.sync_service:
             if self.sync_service.is_online():
                 uid, err_msg = self._cloud_register(email_clean, password, full_name, role)
-                if not uid and err_msg != "Supabase not configured":
-                    raise ValueError(err_msg)
-                cloud_uid = uid
+                if uid:
+                    cloud_uid = uid
+                else:
+                    _log(f"Cloud registration deferred (will auto-provision on next login): {err_msg}")
             else:
                 _log("Offline — skipping immediate cloud registration (will auto-provision later)")
 
@@ -151,6 +160,8 @@ class AuthService:
                         prof_data = prof_res.data[0] if prof_res.data else {}
                         full_name = prof_data.get("full_name") or "User"
                         role = prof_data.get("role") or "teacher"
+                        if role not in VALID_ROLES:
+                            role = "teacher"
                         email_clean = prof_data.get("email") or normalized
 
                         # Create local AppUser
@@ -246,6 +257,7 @@ class AuthService:
                 if ok:
                     _log(f"Cloud sign-in OK for {user.username} ({email})")
                     self._finalize_cloud_uid(page, user, sync)
+                    self._reconcile_role(page, user, sync)
                     return
 
                 # Attempt 2: auto-register (account doesn't exist on the server yet)
@@ -256,6 +268,7 @@ class AuthService:
                 if ok2:
                     _log(f"Auto-registered cloud account for {user.username}: {uid[:8]}")
                     self._finalize_cloud_uid(page, user, sync)
+                    self._reconcile_role(page, user, sync)
                     # Notify on the Flet page (safe: Flet is thread-safe for updates)
                     try:
                         page.snack_bar = __import__('flet').SnackBar(
@@ -286,6 +299,68 @@ class AuthService:
             save_config(page, sync.config)
         except Exception as e:
             _log(f"Could not finalise cloud_uid: {e}")
+
+    def _reconcile_role(self, page, user: AppUser, sync):
+        """Cloud (`profiles.role`) is authoritative for roles. After a successful
+        cloud sign-in, pull the server role and update the local mirror if it
+        drifted (e.g. an admin promoted/demoted this user from the console).
+
+        Runs in the provisioning daemon thread; the new role is picked up the
+        next time `current_user()` re-reads the local row (next navigation/login).
+        """
+        try:
+            client = sync._get_client()
+            if not client or not getattr(sync, "_user_id", None):
+                return
+            res = client.table("profiles").select("role").eq("id", sync._user_id).execute()
+            rows = getattr(res, "data", None) or []
+            cloud_role = rows[0].get("role") if rows else None
+            if cloud_role in VALID_ROLES and cloud_role != user.role:
+                self.repo.update_role(user.id, cloud_role)
+                user.role = cloud_role
+                _log(f"Reconciled role for {user.username} from cloud -> {cloud_role}")
+        except Exception as e:
+            _log(f"Role reconcile skipped for {user.username}: {e}")
+
+    # ── Password recovery ──────────────────────────────────────────
+
+    def request_password_reset(self, email: str) -> tuple:
+        """Send a password-recovery code to the given email (cloud-only)."""
+        if not self.sync_service:
+            return False, "Cloud sync isn't available on this device."
+        return self.sync_service.send_password_reset(email)
+
+    def complete_password_reset(self, page, email: str, token: str,
+                                new_password: str) -> tuple:
+        """Verify the recovery code, set the new cloud password, and mirror it to
+        the local account so both app login and the silent cloud re-auth work with
+        the new password. Returns (ok, msg)."""
+        if len(new_password or "") < 6:
+            return False, "Password must be at least 6 characters."
+        if not self.sync_service:
+            return False, "Cloud sync isn't available on this device."
+
+        ok, msg = self.sync_service.reset_password_with_otp(email, token, new_password)
+        if not ok:
+            return False, msg
+
+        # Mirror the new password into the local account so app login uses it too.
+        # If no local row exists yet (new device), login()'s new-device restore
+        # path recreates it on next sign-in with the new password.
+        email_clean = (email or "").strip().lower()
+        try:
+            user = self.repo.get_by_email(email_clean)
+            if user:
+                self.repo.update_password(user.id, hash_password(new_password))
+                if not getattr(user, "cloud_uid", "") and self.sync_service._user_id:
+                    self.repo.update_cloud_uid(user.id, self.sync_service._user_id)
+                _log(f"Local password mirrored for {user.username}")
+            else:
+                _log(f"No local account for {email_clean}; will restore on next sign-in.")
+        except Exception as e:
+            _log(f"Could not mirror local password: {e}")
+
+        return True, "Password reset. Sign in with your new password."
 
     def current_user(self, page) -> Optional[AppUser]:
         try:

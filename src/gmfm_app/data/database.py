@@ -179,7 +179,9 @@ def init_db(path: Path) -> None:
         except sqlite3.OperationalError:
             pass
 
-        # Student access table (for parent/sponsor linking)
+        # Student access table — the unified relationship model connecting
+        # every account type (teacher/parent/…) to student records.
+        # access_level: 'owner' | 'edit' | 'view'.
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS student_access (
@@ -194,7 +196,35 @@ def init_db(path: Path) -> None:
             );
             """
         )
-            
+
+        # Backfill: every existing student's owning teacher gets an explicit
+        # 'owner' access row, so the relationship table is authoritative going
+        # forward. Idempotent via the UNIQUE(student_id, user_id) constraint.
+        try:
+            cursor.execute(
+                """
+                INSERT OR IGNORE INTO student_access
+                    (student_id, user_id, access_level, granted_by, created_at)
+                SELECT id, user_id, 'owner', NULL, created_at FROM students;
+                """
+            )
+        except sqlite3.OperationalError:
+            pass
+
+        # One-time admin bootstrap: on an existing single-user install there is
+        # no admin yet, so promote the earliest account. Fresh installs get
+        # their admin via the "first user" signup path instead.
+        try:
+            cursor.execute(
+                """
+                UPDATE app_users SET role = 'admin'
+                WHERE id = (SELECT id FROM app_users ORDER BY created_at ASC, id ASC LIMIT 1)
+                  AND NOT EXISTS (SELECT 1 FROM app_users WHERE role = 'admin');
+                """
+            )
+        except sqlite3.OperationalError:
+            pass
+
         conn.commit()
 
 

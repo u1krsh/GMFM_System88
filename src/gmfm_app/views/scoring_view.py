@@ -19,7 +19,8 @@ from gmfm_app.theme import (
 
 
 class ScoringView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, session_id: int = None, is_dark: bool = False, scale: str = "88", user_id=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, student_id: int, session_id: int = None, is_dark: bool = False, scale: str = "88", user_id=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = get_colors(is_dark)
         super().__init__(route=f"/scoring?student_id={student_id}", padding=0, bgcolor=c["BG"])
         self._page_ref = page
@@ -27,8 +28,8 @@ class ScoringView(ft.View):
         self.student_id = student_id
         self.session_id = session_id
         self.scale = scale  # Use the provided scale; may be overridden by existing session below
-        self.student_repo = StudentRepository(db_context, user_id=user_id)
-        self.session_repo = SessionRepository(db_context, user_id=user_id)
+        self.student_repo = StudentRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
+        self.session_repo = SessionRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
         self.scores = {}
         self.score_buttons = {}
         self.c = c

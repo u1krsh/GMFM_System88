@@ -11,19 +11,21 @@ from gmfm_app.theme import get_colors, PRIMARY, SUCCESS, WARNING, ERROR
 
 
 class StudentView(ft.View):
-    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None, user_id=None, current_user=None):
+    def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False, student_id: int = None, user_id=None, current_user=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = get_colors(is_dark)
         route = f"/student?id={student_id}" if student_id else "/student"
         super().__init__(route=route, padding=0, bgcolor=c["BG"])
         self._page_ref = page  # consistent naming with all other views
         self.db_context = db_context
-        self.repo = StudentRepository(db_context, user_id=user_id)
-        self.session_repo = SessionRepository(db_context, user_id=user_id)
+        self.repo = StudentRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
+        self.session_repo = SessionRepository(db_context, user_id=user_id, visible_ids=visible_ids, can_write=can_write, unrestricted=unrestricted)
         self.student_id = student_id
         self.c = c
         self.is_edit = student_id is not None
         self.existing_student = None
-        self.is_read_only = getattr(current_user, 'role', 'teacher') == 'parent'
+        # Read-only follows the access scope's write capability (parents can't edit).
+        self.is_read_only = not can_write
 
         # Load existing student data if editing
         if self.is_edit:

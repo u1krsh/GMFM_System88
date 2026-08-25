@@ -28,7 +28,8 @@ def _colors(is_dark):
 
 class SettingsView(ft.View):
     def __init__(self, page: ft.Page, db_context: DatabaseContext, is_dark: bool = False,
-                 auth_service=None, sync_service=None, user_id=None):
+                 auth_service=None, sync_service=None, user_id=None,
+                 visible_ids=None, can_write=True, unrestricted=False):
         c = _colors(is_dark)
         self._c = c
         super().__init__(route="/settings", padding=0, bgcolor=c["BG"])
@@ -37,6 +38,9 @@ class SettingsView(ft.View):
         self.auth_service = auth_service
         self.sync_service = sync_service
         self._user_id = user_id
+        self._visible_ids = visible_ids
+        self._can_write = can_write
+        self._unrestricted = unrestricted
 
         # Header
         header = ft.SafeArea(
@@ -479,8 +483,8 @@ class SettingsView(ft.View):
         from pathlib import Path
         from gmfm_app.data.repositories import StudentRepository, SessionRepository
 
-        student_repo = StudentRepository(self.db_context, user_id=self._user_id)
-        session_repo = SessionRepository(self.db_context, user_id=self._user_id)
+        student_repo = StudentRepository(self.db_context, user_id=self._user_id, visible_ids=self._visible_ids, can_write=self._can_write, unrestricted=self._unrestricted)
+        session_repo = SessionRepository(self.db_context, user_id=self._user_id, visible_ids=self._visible_ids, can_write=self._can_write, unrestricted=self._unrestricted)
 
         students = student_repo.list_students(limit=1000)
         export = {"students": [], "sessions": []}
@@ -519,8 +523,8 @@ class SettingsView(ft.View):
         from pathlib import Path
         from gmfm_app.data.repositories import StudentRepository, SessionRepository
 
-        student_repo = StudentRepository(self.db_context, user_id=self._user_id)
-        session_repo = SessionRepository(self.db_context, user_id=self._user_id)
+        student_repo = StudentRepository(self.db_context, user_id=self._user_id, visible_ids=self._visible_ids, can_write=self._can_write, unrestricted=self._unrestricted)
+        session_repo = SessionRepository(self.db_context, user_id=self._user_id, visible_ids=self._visible_ids, can_write=self._can_write, unrestricted=self._unrestricted)
         students = student_repo.list_students(limit=1000)
 
         import os
@@ -584,8 +588,8 @@ class SettingsView(ft.View):
             self._page_ref.update()
 
             from gmfm_app.data.repositories import StudentRepository, SessionRepository, get_tester_name
-            student_repo = StudentRepository(self.db_context, user_id=self._user_id)
-            session_repo = SessionRepository(self.db_context, user_id=self._user_id)
+            student_repo = StudentRepository(self.db_context, user_id=self._user_id, visible_ids=self._visible_ids, can_write=self._can_write, unrestricted=self._unrestricted)
+            session_repo = SessionRepository(self.db_context, user_id=self._user_id, visible_ids=self._visible_ids, can_write=self._can_write, unrestricted=self._unrestricted)
             students = student_repo.list_students(limit=1000)
 
             count = 0

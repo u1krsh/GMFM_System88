@@ -102,6 +102,20 @@ class SyncService:
         except Exception:
             return 0
 
+    def get_unsynced_users(self) -> list:
+        """Return local users that have an email but no cloud_uid yet.
+        These are accounts created offline that need cloud registration."""
+        try:
+            with self.db_context.connect() as conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "SELECT id, email, full_name, role FROM app_users "
+                    "WHERE email != '' AND (cloud_uid IS NULL OR cloud_uid = '')"
+                )
+                return [dict(row) for row in cur.fetchall()]
+        except Exception:
+            return []
+
     # ── Authentication ─────────────────────────────────────────────
 
     def register_with_metadata(self, email: str, password: str,
@@ -339,6 +353,70 @@ class SyncService:
         self.config.cloud_password = ""
         self._clear_refresh_token()
 
+    # ── Password recovery ──────────────────────────────────────────
+
+    def send_password_reset(self, email: str) -> tuple:
+        """Email a password-recovery code (OTP) to the given address.
+
+        Uses Supabase's recovery flow. The response is deliberately neutral — it
+        never reveals whether an account exists for that email. Requires network
+        and a configured client. Returns (ok, msg).
+        """
+        client = self._get_client()
+        if not client:
+            return False, "Cloud sync isn't configured on this device."
+        email = (email or "").strip().lower()
+        if not email or "@" not in email:
+            return False, "Enter a valid email address."
+        try:
+            client.auth.reset_password_for_email(email)
+            _log(f"Password reset code requested for {email}")
+            return True, "If that email has an account, a reset code is on its way."
+        except Exception as e:
+            msg = str(e)
+            _log(f"Password reset request error: {msg[:100]}")
+            if "rate" in msg.lower() or "limit" in msg.lower() or "429" in msg:
+                return False, "Too many attempts — wait a minute and try again."
+            return False, "Couldn't send the reset email. Check your connection."
+
+    def reset_password_with_otp(self, email: str, token: str,
+                                new_password: str) -> tuple:
+        """Verify the emailed recovery code and set a new cloud password.
+
+        On success the account is left signed in (session + refresh token stored)
+        so the caller can mirror the password locally and proceed. Returns
+        (ok, msg).
+        """
+        client = self._get_client()
+        if not client:
+            return False, "Cloud sync isn't configured on this device."
+        email = (email or "").strip().lower()
+        token = (token or "").strip()
+        try:
+            res = client.auth.verify_otp(
+                {"email": email, "token": token, "type": "recovery"}
+            )
+            user = getattr(res, "user", None)
+            session = getattr(res, "session", None)
+            if not user:
+                return False, "That code is invalid or has expired."
+            # Session is active now — change the password for this account.
+            client.auth.update_user({"password": new_password})
+            self._user_id = user.id
+            self.config.cloud_email = email
+            self.config.cloud_password = new_password
+            if session:
+                self._save_refresh_token(getattr(session, "refresh_token", ""))
+            _log(f"Cloud password reset for {email} (uid={user.id[:8]})")
+            return True, "Password updated."
+        except Exception as e:
+            msg = str(e)
+            _log(f"Password reset verify error: {msg[:100]}")
+            low = msg.lower()
+            if "expired" in low or "invalid" in low or "token" in low:
+                return False, "That code is invalid or has expired."
+            return False, f"Couldn't reset password: {msg[:60]}"
+
     # ── Push (local -> cloud) ──────────────────────────────────────
 
     def push(self) -> SyncResult:
@@ -456,26 +534,14 @@ class SyncService:
         try:
             last_pull = self._get_last_pull()
 
-            # Determine the user's role locally to know if they get global read access
-            user_role = "teacher"
-            try:
-                with self.db_context.connect() as conn:
-                    cur = conn.cursor()
-                    cur.execute("SELECT role FROM app_users WHERE cloud_uid = ?", (self._user_id,))
-                    row = cur.fetchone()
-                    if row:
-                        user_role = row[0]
-            except Exception as e:
-                _log(f"Failed to fetch role for pull scoping: {e}")
-
+            # Every role pulls only the rows it authored (created_by = self).
+            # Cross-user visibility (admin overview, parent's linked children) is
+            # served cloud-direct in the admin/parent views, never merged into the
+            # local DB — local ids are per-user and would collide on merge.
             for table in ("students", "sessions"):
                 try:
-                    query = client.table(table).select("*")
-                    # Parents get global read access (pull all students).
-                    # Teachers only pull students they created.
-                    if user_role != "parent":
-                        query = query.eq("created_by", self._user_id)
-                        
+                    query = client.table(table).select("*").eq("created_by", self._user_id)
+
                     if last_pull:
                         query = query.gt("updated_at", last_pull)
                     response = query.execute()

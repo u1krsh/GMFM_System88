@@ -109,10 +109,16 @@ try:
     _log("  session_view OK")
     from gmfm_app.views.settings_view import SettingsView
     _log("  settings_view OK")
+    from gmfm_app.views.admin_view import AdminConsoleView
+    _log("  admin_view OK")
+    from gmfm_app.views.parent_view import ParentDashboardView
+    _log("  parent_view OK")
     from gmfm_app.views.login_view import LoginView
     _log("  login_view OK")
     from gmfm_app.services.auth_service import AuthService
     _log("  auth_service OK")
+    from gmfm_app.services.access_service import AccessService
+    _log("  access_service OK")
     from gmfm_app.services.ui_scale import apply_android_scale
     _log("  ui_scale OK")
     IMPORTS_OK = True
@@ -371,6 +377,10 @@ class GMFMApp:
                 return LoginView(self.page, self.auth_service, is_dark)
 
             # ── Role-based route guards ────────────────────────────
+            # Admin console: admins only.
+            if route.startswith("/admin") and user_role != "admin":
+                return self._access_denied_view(route, "The admin console is restricted to administrators")
+
             # Sponsor: only dashboard (aggregate stats)
             if user_role == "sponsor" and route != "/":
                 return self._access_denied_view(route, "Sponsors can only view aggregate statistics")
@@ -381,41 +391,66 @@ class GMFMApp:
                 if not allowed:
                     return self._access_denied_view(route, "Parents can view progress but cannot create or modify data")
 
-            # Determine data scope. Parents get global read access to all students.
-            scope_user_id = None if user_role == "parent" else user_id
+            # Determine data scope via the unified access model.
+            # admin  -> visible_ids=None (unrestricted local read), can_write=True
+            # teacher-> owned ∪ co-taught ids, can_write=True
+            # parent -> only linked ids, can_write=False (read-only)
+            scope = AccessService(self.db_context).scope_for(current_user)
+
+            # Parents hold no local data — give them a cloud-direct, read-only
+            # dashboard of the children linked to them (Phase 3).
+            if user_role == "parent" and route == "/":
+                return ParentDashboardView(self.page, self.db_context, is_dark,
+                                           sync_service=self.sync_service, current_user=current_user)
 
             # ── Build views ────────────────────────────────────────
             if route == "/":
                 return DashboardView(self.page, self.db_context, is_dark,
-                                     current_user=current_user, user_id=scope_user_id)
+                                     current_user=current_user, user_id=scope.user_id,
+                                     visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
+            elif route.startswith("/admin"):
+                return AdminConsoleView(self.page, self.db_context, is_dark,
+                                        auth_service=self.auth_service,
+                                        sync_service=self.sync_service, current_user=current_user)
             elif route.startswith("/student"):
                 pid = self._param_from_route(route, "id")
                 return StudentView(self.page, self.db_context, is_dark,
-                                   int(pid) if pid else None, user_id=scope_user_id, current_user=current_user)
+                                   int(pid) if pid else None, user_id=scope.user_id,
+                                   current_user=current_user,
+                                   visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
             elif route == "/settings":
                 return SettingsView(self.page, self.db_context, is_dark,
                                    auth_service=self.auth_service,
-                                   sync_service=self.sync_service, user_id=scope_user_id)
+                                   sync_service=self.sync_service, user_id=scope.user_id,
+                                   visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
             elif route.startswith("/scoring"):
                 pid = self._param_from_route(route, "student_id")
                 sid = self._param_from_route(route, "session_id")
                 scale = self._param_from_route(route, "scale") or "88"
                 if pid:
                     return ScoringView(self.page, self.db_context, int(pid),
-                                       int(sid) if sid else None, is_dark, scale, user_id=scope_user_id)
+                                       int(sid) if sid else None, is_dark, scale,
+                                       user_id=scope.user_id,
+                                       visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
             elif route.startswith("/history"):
                 pid = self._param_from_route(route, "student_id")
                 if pid:
-                    return SessionHistoryView(self.page, self.db_context, int(pid), is_dark, user_id=scope_user_id)
+                    return SessionHistoryView(self.page, self.db_context, int(pid), is_dark,
+                                              user_id=scope.user_id,
+                                              visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
             elif route.startswith("/compare"):
                 s1 = self._param_from_route(route, "session1")
                 s2 = self._param_from_route(route, "session2")
                 if s1 and s2:
-                    return CompareView(self.page, self.db_context, int(s1), int(s2), is_dark, user_id=scope_user_id)
+                    return CompareView(self.page, self.db_context, int(s1), int(s2), is_dark,
+                                       user_id=scope.user_id,
+                                       visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
             elif route.startswith("/session"):
                 sid = self._param_from_route(route, "session_id")
                 if sid:
-                    return SessionDetailView(self.page, self.db_context, int(sid), is_dark, user_id=scope_user_id)
+                    return SessionDetailView(self.page, self.db_context, int(sid), is_dark,
+                                             user_id=scope.user_id,
+                                             visible_ids=scope.visible_ids, can_write=scope.can_write, unrestricted=scope.unrestricted)
             return None
         except Exception as e:
             return _make_error_view(route, f"View error ({route}): {e}", traceback.format_exc())
